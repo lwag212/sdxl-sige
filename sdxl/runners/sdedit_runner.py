@@ -57,6 +57,7 @@ class SDEditRunner(BaseRunner):
           masks=masks,
           is_sige_model=is_sige_model,
           difference_mask=difference_mask,
+          negative_prompt=args.negative_prompt,
         )
 
         self.save_samples(samples)

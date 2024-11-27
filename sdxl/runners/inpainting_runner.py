@@ -55,6 +55,7 @@ class InpaintingRunner(BaseRunner):
           mask=mask,
           conv_masks=conv_masks,
           shape=shape,
+          negative_prompt=args.negative_prompt,
         )
 
         self.save_samples(samples)

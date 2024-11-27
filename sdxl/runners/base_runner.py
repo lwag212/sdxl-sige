@@ -23,7 +23,7 @@ class BaseRunner:
             choices=["generate", "profile_unet", "profile_encoder", "profile_decoder"],
         )
         parser.add_argument("--prompt", type=str, required=True)
-        parser.add_argument("--negative_prompt", type=str, default=None)
+        parser.add_argument("--negative_prompt", type=str, default="")
         parser.add_argument("--output_path", type=str, default=None)
         parser.add_argument("--ddim_steps", type=int, default=50)
         parser.add_argument("--ddim_eta", type=float, default=0.0)
