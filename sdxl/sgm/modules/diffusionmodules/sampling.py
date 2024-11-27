@@ -343,40 +343,6 @@ class DPMPP2MSampler(BaseDiffusionSampler):
 
         return x, denoised
 
-    def sige_sampler_step(
-        self,
-        old_denoised,
-        previous_sigma,
-        sigma,
-        next_sigma,
-        denoiser,
-        x,
-        cond,
-        uc=None,
-    ):
-        denoised = self.denoise(x, denoiser, sigma, cond, uc)
-
-        h, r, t, t_next = self.get_variables(sigma, next_sigma, previous_sigma)
-        mult = [
-            append_dims(mult, x.ndim)
-            for mult in self.get_mult(h, r, t, t_next, previous_sigma)
-        ]
-
-        x_standard = mult[0] * x - mult[1] * denoised
-        if old_denoised is None or torch.sum(next_sigma) < 1e-14:
-            # Save a network evaluation if all noise levels are 0 or on the first step
-            return x_standard, denoised
-        else:
-            denoised_d = mult[2] * denoised - mult[3] * old_denoised
-            x_advanced = mult[0] * x - mult[1] * denoised_d
-
-            # apply correction if noise level is not 0 and not first step
-            x = torch.where(
-                append_dims(next_sigma, x.ndim) > 0.0, x_advanced, x_standard
-            )
-
-        return x, denoised
-
     def __call__(self, denoiser, x, cond, uc=None, num_steps=None, **kwargs):
         x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
             x, cond, uc, num_steps
@@ -384,6 +350,43 @@ class DPMPP2MSampler(BaseDiffusionSampler):
 
         old_denoised = None
         for i in self.get_sigma_gen(num_sigmas):
+            x, old_denoised = self.sampler_step(
+                old_denoised,
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                x,
+                cond,
+                uc=uc,
+            )
+
+        return x
+    
+    def inpaint_call(self, denoiser, set_mode_masks, x, x0, cond, uc=None, num_steps=None, apply_mask=None, is_sige=False, **kwargs):
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+
+        old_denoised = None
+        old_denoised_x0 = None
+        for i in self.get_sigma_gen(num_sigmas):
+            if apply_mask is not None:
+                x = apply_mask(x, x0)
+                if is_sige:
+                    set_mode_masks('full')
+                    self.sampler_step(
+                        old_denoised_x0,
+                        None if i == 0 else s_in * sigmas[i - 1],
+                        s_in * sigmas[i],
+                        s_in * sigmas[i + 1],
+                        denoiser,
+                        x0,
+                        cond,
+                        uc=uc,
+                    )
+                    set_mode_masks('sparse', True)
+            
             x, old_denoised = self.sampler_step(
                 old_denoised,
                 None if i == 0 else s_in * sigmas[i - 1],
@@ -409,7 +412,7 @@ class DPMPP2MSampler(BaseDiffusionSampler):
         old_denoised_init = None
         for i in self.get_sigma_gen(num_sigmas):
             set_mode_masks('full')
-            init_x, old_denoised_init = self.sige_sampler_step(
+            init_x, old_denoised_init = self.sampler_step(
                 old_denoised_init,
                 None if i == 0 else s_in * sigmas[i - 1],
                 s_in * sigmas[i],
@@ -420,7 +423,7 @@ class DPMPP2MSampler(BaseDiffusionSampler):
                 uc=uc,
             )
             set_mode_masks('sparse', True)
-            edited_x, old_denoised_edit = self.sige_sampler_step(
+            edited_x, old_denoised_edit = self.sampler_step(
                 old_denoised_edit,
                 None if i == 0 else s_in * sigmas[i - 1],
                 s_in * sigmas[i],

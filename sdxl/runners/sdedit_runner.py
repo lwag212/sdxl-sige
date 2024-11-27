@@ -46,6 +46,7 @@ class SDEditRunner(BaseRunner):
         else:
             init_img = None
             masks = None
+            difference_mask=None
 
         # Run diffuser
         samples = self.model.sdedit(

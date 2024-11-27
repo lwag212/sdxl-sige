@@ -369,17 +369,27 @@ def do_inpaint(
                 x0 = z
                 # x0 = noised_z
                 def denoiser(x, sigma, c):
-                    if mask is not None:
-                        x = x0 * mask + (1.0 - mask) * x
-                        if isinstance(model.model.diffusion_model, SIGEUNetModel):
-                            model.model.diffusion_model.set_mode("full")
-                            model.denoiser(model.model, x0, sigma, c)
-                            model.model.diffusion_model.set_mode("sparse")
-                            model.model.diffusion_model.set_masks(conv_masks)
+                    # if mask is not None:
+                    #     x = x0 * mask + (1.0 - mask) * x
+                    #     if isinstance(model.model.diffusion_model, SIGEUNetModel):
+                    #         model.model.diffusion_model.set_mode("full")
+                    #         model.denoiser(model.model, x0, sigma, c)
+                    #         model.model.diffusion_model.set_mode("sparse")
+                    #         model.model.diffusion_model.set_masks(conv_masks)
 
                     return model.denoiser(model.model, x, sigma, c)
+                
+                def set_mode_masks(mode, set_masks=False):
+                    model.model.diffusion_model.set_mode(mode)
+                    if set_masks: model.model.diffusion_model.set_masks(conv_masks)
+                
+                def apply_mask(x, x0):
+                    return x0 * mask + (1.0 - mask) * x
+                
 
-                samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
+                samples_z = sampler.inpaint_call(denoiser, set_mode_masks, noised_z, z, cond=c, uc=uc, 
+                                                 apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
+                                                )
 
                 if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                     assert isinstance(model.first_stage_model.decoder, SIGEModel)
