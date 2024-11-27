@@ -351,7 +351,7 @@ def do_inpaint(
                 if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                     assert isinstance(model.first_stage_model.encoder, SIGEModel)
                     model.first_stage_model.encoder.set_mode("full")
-                z = model.encode_first_stage(img)
+                z = model.get_first_stage_encoding(model.encode_first_stage(img))
 
                 noise = torch.randn_like(z)
                 sigmas = sampler.discretization(sampler.num_steps)
@@ -452,10 +452,10 @@ def do_sdedit(
                     init_latent = model.get_first_stage_encoding(model.encode_first_stage(init_img))
                     model.first_stage_model.encoder.set_mode("sparse")
                     model.first_stage_model.encoder.set_masks(masks)
-                    edited_latent = model.encode_first_stage(edited_img)
+                    edited_latent = model.get_first_stage_encoding(model.encode_first_stage(edited_img))
                 else:
                     init_latent = None
-                    edited_latent = model.encode_first_stage(edited_img)
+                    edited_latent = model.get_first_stage_encoding(model.encode_first_stage(edited_img))
                 # z = model.encode_first_stage(img)
                 t_enc = int(value_dict['img2img_strength'] * value_dict['steps'])
                 print(f"target t_enc is {t_enc} steps")

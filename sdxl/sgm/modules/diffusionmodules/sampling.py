@@ -401,7 +401,7 @@ class DPMPP2MSampler(BaseDiffusionSampler):
         return x
     
     def sige_call(self, denoiser, set_mode_masks, edited_x, init_x, cond, uc=None, num_steps=None, **kwargs):
-        edited_x, s_in_edit, sigmas_edit, num_sigmas, cond_edit, uc_edit = self.prepare_sampling_loop(
+        edited_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
             edited_x, cond, uc, num_steps
         )
         init_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
@@ -425,13 +425,13 @@ class DPMPP2MSampler(BaseDiffusionSampler):
             set_mode_masks('sparse', True)
             edited_x, old_denoised_edit = self.sampler_step(
                 old_denoised_edit,
-                None if i == 0 else s_in_edit * sigmas_edit[i - 1],
-                s_in_edit * sigmas_edit[i],
-                s_in_edit * sigmas_edit[i + 1],
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
                 denoiser,
                 edited_x,
-                cond_edit,
-                uc=uc_edit,
+                cond,
+                uc=uc,
             )
 
         return init_x, edited_x
