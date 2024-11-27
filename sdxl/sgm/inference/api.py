@@ -232,7 +232,7 @@ class SamplingPipeline:
         params: SamplingParams,
         image,
         prompt: str,
-        masks,
+        mask,
         conv_masks,
         shape,
         negative_prompt: str = "",
@@ -261,7 +261,7 @@ class SamplingPipeline:
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
             filter=None,
-            masks=masks,
+            mask=mask,
             conv_masks=conv_masks,
             shape=shape,
         )
@@ -313,6 +313,7 @@ class SamplingPipeline:
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
+        difference_mask=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -339,6 +340,7 @@ class SamplingPipeline:
             masks=self.masks,
             conv_masks=self.conv_masks,
             shape=self.shape,
+            difference_mask=difference_mask,
         )
 
     def refiner(

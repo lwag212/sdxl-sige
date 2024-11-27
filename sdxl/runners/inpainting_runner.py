@@ -35,6 +35,8 @@ class InpaintingRunner(BaseRunner):
         # Works better with lower image strength
         params = SamplingParams()
         params.img2img_strength = .8
+        params.width = args.W
+        params.height = args.H
 
         # Generate the masks
         shape = (args.C, args.H // args.f, args.W // args.f)

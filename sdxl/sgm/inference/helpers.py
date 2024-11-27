@@ -413,6 +413,7 @@ def do_sdedit(
     init_img=None,
     masks=None,
     is_sige_model=False,
+    difference_mask=None,
 ):
     with torch.no_grad():
         with autocast(device) as precision_scope:
@@ -451,8 +452,8 @@ def do_sdedit(
 
                 noise = torch.randn_like(edited_latent)
                 sigmas = sampler.discretization(sampler.num_steps)
-                # sigma = sigmas[0].to(edited_latent.device)
-                sigma = sigmas[t_enc].to(edited_latent.device)
+                sigma = sigmas[0].to(edited_latent.device)
+                # sigma = sigmas[t_enc - 1].to(edited_latent.device)
 
                 if offset_noise_level > 0.0:
                     noise = noise + offset_noise_level * append_dims(
@@ -460,7 +461,7 @@ def do_sdedit(
                     )
                 noised_edited = edited_latent + noise * append_dims(sigma, edited_latent.ndim)
                 z_enc_edited = noised_edited / torch.sqrt(
-                    1.0 + sigmas[t_enc] ** 2.0
+                    1.0 + sigma ** 2.0
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
                 # Used for decoding
@@ -468,13 +469,13 @@ def do_sdedit(
                     return model.denoiser(model.model, x, sigma, c)
                 
                 def set_mode_masks(mode, set_masks=False):
-                    model.diffusion_model.set_mode(mode)
-                    if set_masks: model.diffusion_model.set_masks(masks)
+                    model.model.diffusion_model.set_mode(mode)
+                    if set_masks: model.model.diffusion_model.set_masks(masks)
                 
                 if is_sige_model:
                     noised_init = init_latent + noise * append_dims(sigma, init_latent.ndim)
                     z_enc_init = noised_init / torch.sqrt(
-                        1.0 + sigmas[t_enc] ** 2.0
+                        1.0 + sigma ** 2.0
                     )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
                     
                     samples_init, samples_edited = sampler.sige_call(denoiser, set_mode_masks, 

@@ -30,7 +30,7 @@ class SDEditRunner(BaseRunner):
         params = SamplingParams()
         params.img2img_strength = args.strength
         is_sige_model = (
-            self.config.model.params.unet_config.target == "sgm.modules.diffusionmodules.sige_openaimodel.SIGEUNetModel"
+            args.run_type == 'sige'
         )
 
         # Load images and compute difference if necessary
@@ -55,6 +55,7 @@ class SDEditRunner(BaseRunner):
           init_image=init_img,
           masks=masks,
           is_sige_model=is_sige_model,
+          difference_mask=difference_mask,
         )
 
         self.save_samples(samples)
