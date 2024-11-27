@@ -277,6 +277,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         is_sige_model=False,
+        difference_mask=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -303,6 +304,7 @@ class SamplingPipeline:
             init_img=init_image,
             masks=masks,
             is_sige_model=is_sige_model,
+            difference_mask=difference_mask,
         )
 
     def image_to_image(
