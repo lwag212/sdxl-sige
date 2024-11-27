@@ -343,101 +343,6 @@ class SIGEAttnBlock(SIGEModule):
         return h_
 
 
-class SIGEMemoryEfficientAttnBlock(SIGEModule):
-    """
-    Uses xformers efficient implementation,
-    see https://github.com/MatthieuTPHR/diffusers/blob/d80b531ff8060ec1ea982b65a1b8df70f73aa67c/src/diffusers/models/attention.py#L223
-    Note: this is a single-head self-attention operation
-    """
-
-    def __init__(self, in_channels, block_size=4):
-        super(SIGEMemoryEfficientAttnBlock, self).__init__()
-        self.in_channels = in_channels
-        self.block_size = block_size
-
-        self.norm = Normalize(in_channels)
-        self.q = SIGEConv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0)
-        self.k = SIGEConv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0)
-        self.v = SIGEConv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0)
-        self.proj_out = SIGEConv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0)
-
-        self.gather = Gather(self.q, block_size=block_size)
-        self.k_scatter = Scatter(self.gather)
-        self.v_scatter = Scatter(self.gather)
-
-        self.out_scatter = Scatter(self.gather)
-
-        self.scale, self.shift = None, None
-        self.attention_op: Optional[Any] = None
-
-    def attention(self, h_: torch.Tensor) -> torch.Tensor:
-        x = h_
-        if self.mode == "full":
-            h_ = self.gather(h_)
-            h_, scale, shift = my_group_norm(h_, self.norm)
-            self.scale, self.shift = scale, shift
-        elif self.mode in ["sparse", "profile"]:
-            h_ = self.gather(h_, self.scale.view(1, -1, 1, 1), self.shift.view(1, -1, 1, 1))
-        else:
-            raise NotImplementedError
-
-        q = self.q(h_)  # [b * nb, c, bh, bw]
-        k = self.k(h_)
-        k = self.k_scatter(k)
-        v = self.v(h_)
-        v = self.v_scatter(v)
-
-        if self.mode == "full":
-            b, c, h, w = q.shape
-            q, k, v = map(lambda t: t.reshape(b, c, h * w)
-                                     .permute(0,2,1)
-                                     .contiguous(),
-                            (q, k, v)
-                          )
-        elif self.mode in ["sparse", "profile"]:
-            b = x.size(0)
-            _, c, bh, bw = q.shape
-            q, k, v = map(lambda t: t.unsqueeze(3)
-                                    .reshape(b, t.shape[1], 1, c)
-                                    .permute(0, 2, 1, 3)
-                                    .reshape(b * 1, t.shape[1], c)
-                                    .contiguous(),
-                                    (q, k, v),
-                          )
-            # _, c, bh, bw = q.shape
-            # q, k, v = map(lambda t: t.reshape(b, -1, c, self.block_size * self.block_size)
-            #                          .permute(0,1,3,2)
-            #                          .reshape(b, -1, c)
-            #                          .contiguous(),
-            #                 (q, k, v)
-            #               )
-        else:
-            raise NotImplementedError
-
-        out = xformers.ops.memory_efficient_attention(
-            q, k, v, attn_bias=None, op=self.attention_op
-        )
-
-        if self.mode == "full":
-            out = out.reshape(b, c, h, w)
-        elif self.mode in ["sparse", "profile"]:
-            # out [b, c, nb*bh*bw] -> [b * nb, c, bh, bw]
-            out = out.reshape(b, c, -1, self.block_size, self.block_size)
-            out = out.permute(0, 2, 1, 3, 4)
-            out = out.reshape(-1, c, self.block_size, self.block_size)
-        else:
-            raise NotImplementedError
-
-        return out
-
-    def forward(self, x, **kwargs):
-        h_ = x
-        h_ = self.attention(h_)
-        h_ = self.proj_out(h_)
-        h_ = self.out_scatter(h_, x)
-        return x + h_
-
-
 
 class MemoryEfficientCrossAttentionWrapper(MemoryEfficientCrossAttention):
     def forward(self, x, context=None, mask=None, **unused_kwargs):
@@ -456,7 +361,6 @@ def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None, block_size=4):
         "linear",
         "none",
         "sige",
-        "sige-xformers",
     ], f"attn_type {attn_type} unknown"
     if (
         version.parse(torch.__version__) < version.parse("2.0.0")
@@ -483,8 +387,6 @@ def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None, block_size=4):
         return nn.Identity(in_channels)
     elif attn_type == "sige":
         return SIGEAttnBlock(in_channels, block_size=block_size)
-    elif attn_type == "sige-xformers":
-        return SIGEMemoryEfficientAttnBlock(in_channels, block_size=block_size)
     else:
         return LinAttnBlock(in_channels)
 

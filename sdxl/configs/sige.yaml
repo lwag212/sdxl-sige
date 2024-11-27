@@ -79,7 +79,7 @@ model:
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
-          attn_type: sige-xformers
+          attn_type: sige
           double_z: true
           z_channels: 4
           resolution: 256
