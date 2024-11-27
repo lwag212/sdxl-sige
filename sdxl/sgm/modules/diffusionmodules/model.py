@@ -397,12 +397,20 @@ class SIGEMemoryEfficientAttnBlock(SIGEModule):
         elif self.mode in ["sparse", "profile"]:
             b = x.size(0)
             _, c, bh, bw = q.shape
-            q, k, v = map(lambda t: t.reshape(b, -1, c, self.block_size * self.block_size)
-                                     .permute(0,1,3,2)
-                                     .reshape(b, -1, c)
-                                     .contiguous(),
-                            (q, k, v)
+            q, k, v = map(lambda t: t.unsqueeze(3)
+                                    .reshape(b, t.shape[1], 1, c)
+                                    .permute(0, 2, 1, 3)
+                                    .reshape(b * 1, t.shape[1], c)
+                                    .contiguous(),
+                                    (q, k, v),
                           )
+            # _, c, bh, bw = q.shape
+            # q, k, v = map(lambda t: t.reshape(b, -1, c, self.block_size * self.block_size)
+            #                          .permute(0,1,3,2)
+            #                          .reshape(b, -1, c)
+            #                          .contiguous(),
+            #                 (q, k, v)
+            #               )
         else:
             raise NotImplementedError
 
