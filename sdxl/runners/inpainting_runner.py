@@ -34,7 +34,7 @@ class InpaintingRunner(BaseRunner):
 
         # Works better with lower image strength
         params = SamplingParams()
-        params.img2img_strength = .8
+        # params.img2img_strength = .8
         params.width = args.W
         params.height = args.H
 
