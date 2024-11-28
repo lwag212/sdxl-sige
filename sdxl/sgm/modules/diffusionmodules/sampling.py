@@ -72,6 +72,80 @@ class BaseDiffusionSampler:
             )
         return sigma_generator
 
+    def sige_inpaint_call(self, denoiser, set_mode_masks, x, x0, cond, uc=None, num_steps=None, apply_mask=None, is_sige=False, **kwargs):
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+
+        old_denoised = None
+        old_denoised_x0 = None
+        for i in self.get_sigma_gen(num_sigmas):
+            if apply_mask is not None:
+                init_img = x0 + torch.randn_like(x0) * append_dims(sigmas[i], x0.ndim)
+                x = apply_mask(x, init_img)
+                if is_sige:
+                    set_mode_masks('full')
+                    self.sampler_step(
+                        old_denoised_x0,
+                        None if i == 0 else s_in * sigmas[i - 1],
+                        s_in * sigmas[i],
+                        s_in * sigmas[i + 1],
+                        denoiser,
+                        init_img,
+                        cond,
+                        uc=uc,
+                    )
+                    set_mode_masks('sparse', True)
+            
+            x, old_denoised = self.sampler_step(
+                old_denoised,
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                x,
+                cond,
+                uc=uc,
+            )
+
+        return x
+    
+    def sige_sdedit_call(self, denoiser, set_mode_masks, edited_x, init_x, cond, uc=None, num_steps=None, **kwargs):
+        edited_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            edited_x, cond, uc, num_steps
+        )
+        init_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            init_x, cond, uc, num_steps
+        )
+
+        old_denoised_edit = None
+        old_denoised_init = None
+        for i in self.get_sigma_gen(num_sigmas):
+            set_mode_masks('full')
+            init_x, old_denoised_init = self.sampler_step(
+                old_denoised_init,
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                init_x,
+                cond,
+                uc=uc,
+            )
+            set_mode_masks('sparse', True)
+            edited_x, old_denoised_edit = self.sampler_step(
+                old_denoised_edit,
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                edited_x,
+                cond,
+                uc=uc,
+            )
+
+        return init_x, edited_x
+
 
 class SingleStepDiffusionSampler(BaseDiffusionSampler):
     def sampler_step(self, sigma, next_sigma, denoiser, x, cond, uc, *args, **kwargs):
@@ -362,76 +436,3 @@ class DPMPP2MSampler(BaseDiffusionSampler):
             )
 
         return x
-    
-    def inpaint_call(self, denoiser, set_mode_masks, x, x0, cond, uc=None, num_steps=None, apply_mask=None, is_sige=False, **kwargs):
-        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
-            x, cond, uc, num_steps
-        )
-
-        old_denoised = None
-        old_denoised_x0 = None
-        for i in self.get_sigma_gen(num_sigmas):
-            if apply_mask is not None:
-                x = apply_mask(x, x0)
-                if is_sige:
-                    set_mode_masks('full')
-                    self.sampler_step(
-                        old_denoised_x0,
-                        None if i == 0 else s_in * sigmas[i - 1],
-                        s_in * sigmas[i],
-                        s_in * sigmas[i + 1],
-                        denoiser,
-                        x0,
-                        cond,
-                        uc=uc,
-                    )
-                    set_mode_masks('sparse', True)
-            
-            x, old_denoised = self.sampler_step(
-                old_denoised,
-                None if i == 0 else s_in * sigmas[i - 1],
-                s_in * sigmas[i],
-                s_in * sigmas[i + 1],
-                denoiser,
-                x,
-                cond,
-                uc=uc,
-            )
-
-        return x
-    
-    def sige_call(self, denoiser, set_mode_masks, edited_x, init_x, cond, uc=None, num_steps=None, **kwargs):
-        edited_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
-            edited_x, cond, uc, num_steps
-        )
-        init_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
-            init_x, cond, uc, num_steps
-        )
-
-        old_denoised_edit = None
-        old_denoised_init = None
-        for i in self.get_sigma_gen(num_sigmas):
-            set_mode_masks('full')
-            init_x, old_denoised_init = self.sampler_step(
-                old_denoised_init,
-                None if i == 0 else s_in * sigmas[i - 1],
-                s_in * sigmas[i],
-                s_in * sigmas[i + 1],
-                denoiser,
-                init_x,
-                cond,
-                uc=uc,
-            )
-            set_mode_masks('sparse', True)
-            edited_x, old_denoised_edit = self.sampler_step(
-                old_denoised_edit,
-                None if i == 0 else s_in * sigmas[i - 1],
-                s_in * sigmas[i],
-                s_in * sigmas[i + 1],
-                denoiser,
-                edited_x,
-                cond,
-                uc=uc,
-            )
-
-        return init_x, edited_x

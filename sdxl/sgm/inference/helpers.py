@@ -387,7 +387,7 @@ def do_inpaint(
                     return x0 * mask + (1.0 - mask) * x
                 
 
-                samples_z = sampler.inpaint_call(denoiser, set_mode_masks, noised_z, z, cond=c, uc=uc, 
+                samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, noised_z, z, cond=c, uc=uc, 
                                                  apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
                                                 )
 
@@ -488,7 +488,7 @@ def do_sdedit(
                         1.0 + sigma ** 2.0
                     )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
                     
-                    samples_init, samples_edited = sampler.sige_call(denoiser, set_mode_masks, 
+                    samples_init, samples_edited = sampler.sige_sdedit_call(denoiser, set_mode_masks, 
                                                                      z_enc_edited, z_enc_init, cond=c, uc=uc, is_sige=True)
                     # # samples = samples_edited
                 else:
