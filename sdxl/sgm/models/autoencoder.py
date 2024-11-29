@@ -211,8 +211,8 @@ class AutoencodingEngine(AbstractAutoencoder):
         x = self.decoder(z, **kwargs)
         return x
     
-    def profile(self, encoder_decoder, x):
-        if hasattr(self, 'args') and self.args.mode == "profile_encoder":
+    def profile(self, encoder_decoder, x, mode):
+        if hasattr(self, 'args') and self.args.mode == mode:
             if not hasattr(encoder_decoder, "mode") or encoder_decoder.mode == "sparse":
                 if hasattr(encoder_decoder, "mode"):
                     encoder_decoder.set_mode("profile")
@@ -496,7 +496,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
         if self.max_batch_size is None:
             z = self.encoder(x)
             z = self.quant_conv(z)
-            self.profile(self.encoder, x)
+            self.profile(self.encoder, x, "profile_encoder")
         else:
             N = x.shape[0]
             bs = self.max_batch_size
@@ -504,7 +504,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
             z = list()
             for i_batch in range(n_batches):
                 z_batch = self.encoder(x[i_batch * bs : (i_batch + 1) * bs])
-                self.profile(self.encoder, x[i_batch * bs : (i_batch + 1) * bs])
+                self.profile(self.encoder, x[i_batch * bs : (i_batch + 1) * bs], "profile_encoder")
                 z_batch = self.quant_conv(z_batch)
                 z.append(z_batch)
             z = torch.cat(z, 0)
@@ -518,7 +518,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
         if self.max_batch_size is None:
             dec = self.post_quant_conv(z)
             dec = self.decoder(dec, **decoder_kwargs)
-            self.profile(self.decoder, dec)
+            self.profile(self.decoder, dec, "profile_decoder")
         else:
             N = z.shape[0]
             bs = self.max_batch_size
@@ -527,7 +527,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
             for i_batch in range(n_batches):
                 dec_batch = self.post_quant_conv(z[i_batch * bs : (i_batch + 1) * bs])
                 dec_batch = self.decoder(dec_batch, **decoder_kwargs)
-                self.profile(self.decoder, dec_batch[i_batch * bs : (i_batch + 1) * bs])
+                self.profile(self.decoder, dec_batch[i_batch * bs : (i_batch + 1) * bs], "profile_decoder")
                 dec.append(dec_batch)
             dec = torch.cat(dec, 0)
 
