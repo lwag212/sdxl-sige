@@ -368,7 +368,7 @@ def do_inpaint(
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
                 x0 = z
-                model.model.args = args  # Pass args for profiling
+                if args is not None: model.model.args = args  # Pass args for profiling
                 # x0 = noised_z
                 def denoiser(x, sigma, c):
                     # if mask is not None:
@@ -426,7 +426,7 @@ def do_sdedit(
     masks=None,
     is_sige_model=False,
     difference_mask=None,
-    args,
+    args=None,
 ):
     with torch.no_grad():
         with autocast(device) as precision_scope:
@@ -477,7 +477,7 @@ def do_sdedit(
                     1.0 + sigma ** 2.0
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
-                model.model.args = args  # Pass args for profiling
+                if args is not None: model.model.args = args  # Pass args for profiling
                 
                 # Used for decoding
                 def denoiser(x, sigma, c):
