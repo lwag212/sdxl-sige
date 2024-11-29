@@ -185,12 +185,14 @@ class SamplingPipeline:
         self.config = str(pathlib.Path(config_path, self.specs.config))
         self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
         self.device = device
-        self.model = self._load_model(device=device, use_fp16=use_fp16)
         self.args = args
+        self.model = self._load_model(device=device, use_fp16=use_fp16)
 
 
     def _load_model(self, device="cuda", use_fp16=True):
         config = OmegaConf.load(self.config)
+        if self.args.mode == 'profile_unet': config['model']['params']['network_config']['params']['use_checkpoint'] = False
+
         model = load_model_from_config(config, self.ckpt)
         if model is None:
             raise ValueError(f"Model {self.model_id} could not be loaded")

@@ -200,29 +200,6 @@ class AutoencodingEngine(AbstractAutoencoder):
         unregularized: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
         z = self.encoder(x)
-        if self.args.mode == "profile_encoder":
-            if not hasattr(self.encoder, "mode") or self.encoder.mode == "sparse":
-                if hasattr(self.encoder, "mode"):
-                    self.encoder.set_mode("profile")
-                from torchprofile import profile_macs
-
-                macs = profile_macs(self.encoder, (x,))
-                print("MACs: %.3fG" % (macs / 1e9))
-
-                from tqdm import trange
-                import time
-
-                if hasattr(self.encoder, "mode"):
-                    self.encoder.set_mode("sparse")
-                for _ in trange(100):
-                    self.encoder(x)
-                    torch.cuda.synchronize()
-                start = time.time()
-                for _ in trange(100):
-                    self.encoder(x)
-                    torch.cuda.synchronize()
-                print(f"Time per forward pass: {(time.time() - start) * 10} ms\n\n\n")
-                exit(0)
         if unregularized:
             return z, dict()
         z, reg_log = self.regularization(z)
@@ -232,30 +209,32 @@ class AutoencodingEngine(AbstractAutoencoder):
 
     def decode(self, z: torch.Tensor, **kwargs) -> torch.Tensor:
         x = self.decoder(z, **kwargs)
-        if self.args.mode == "profile_decoder":
-            if not hasattr(self.decoder, "mode") or self.decoder.mode == "sparse":
-                if hasattr(self.decoder, "mode"):
-                    self.decoder.set_mode("profile")
+        return x
+    
+    def profile(self, encoder_decoder, x):
+        if self.args.mode == "profile_encoder":
+            if not hasattr(encoder_decoder, "mode") or encoder_decoder.mode == "sparse":
+                if hasattr(encoder_decoder, "mode"):
+                    encoder_decoder.set_mode("profile")
                 from torchprofile import profile_macs
 
-                macs = profile_macs(self.decoder, (z,))
+                macs = profile_macs(encoder_decoder, (x,))
                 print("MACs: %.3fG" % (macs / 1e9))
 
                 from tqdm import trange
                 import time
 
-                if hasattr(self.decoder, "mode"):
-                    self.decoder.set_mode("sparse")
+                if hasattr(encoder_decoder, "mode"):
+                    encoder_decoder.set_mode("sparse")
                 for _ in trange(100):
-                    self.decoder(z)
+                    encoder_decoder(x)
                     torch.cuda.synchronize()
                 start = time.time()
                 for _ in trange(100):
-                    self.decoder(z)
+                    encoder_decoder(x)
                     torch.cuda.synchronize()
                 print(f"Time per forward pass: {(time.time() - start) * 10} ms\n\n\n")
                 exit(0)
-        return x
 
     def forward(
         self, x: torch.Tensor, **additional_decode_kwargs
@@ -517,6 +496,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
         if self.max_batch_size is None:
             z = self.encoder(x)
             z = self.quant_conv(z)
+            self.profile(self.encoder, x)
         else:
             N = x.shape[0]
             bs = self.max_batch_size
@@ -524,6 +504,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
             z = list()
             for i_batch in range(n_batches):
                 z_batch = self.encoder(x[i_batch * bs : (i_batch + 1) * bs])
+                self.profile(self.encoder, x[i_batch * bs : (i_batch + 1) * bs])
                 z_batch = self.quant_conv(z_batch)
                 z.append(z_batch)
             z = torch.cat(z, 0)
@@ -537,6 +518,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
         if self.max_batch_size is None:
             dec = self.post_quant_conv(z)
             dec = self.decoder(dec, **decoder_kwargs)
+            self.profile(self.decoder, dec)
         else:
             N = z.shape[0]
             bs = self.max_batch_size
@@ -545,6 +527,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
             for i_batch in range(n_batches):
                 dec_batch = self.post_quant_conv(z[i_batch * bs : (i_batch + 1) * bs])
                 dec_batch = self.decoder(dec_batch, **decoder_kwargs)
+                self.profile(self.decoder, dec_batch[i_batch * bs : (i_batch + 1) * bs])
                 dec.append(dec_batch)
             dec = torch.cat(dec, 0)
 
