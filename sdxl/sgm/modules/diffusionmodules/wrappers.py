@@ -35,7 +35,7 @@ class OpenAIWrapper(IdentityWrapper):
                 cond_motion=c.get("cond_motion", None),
                 **kwargs,
             )
-            if self.args.mode == "profile_unet":
+            if hasattr(self, "args") and self.args.mode == "profile_unet":
                 from torchprofile import profile_macs
                 import time
                 from tqdm import trange
@@ -83,7 +83,7 @@ class OpenAIWrapper(IdentityWrapper):
                 y=c.get("vector", None),
                 **kwargs,
             )
-            if self.args.mode == "profile_unet":
+            if hasattr(self, "args") and self.args.mode == "profile_unet":
                 from torchprofile import profile_macs
                 import time
                 from tqdm import trange

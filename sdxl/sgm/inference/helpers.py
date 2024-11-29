@@ -327,6 +327,7 @@ def do_inpaint(
     mask=None,
     conv_masks=None,
     shape=None,
+    args=None,
 ):
     with torch.no_grad():
         with autocast(device) as precision_scope:
@@ -367,6 +368,7 @@ def do_inpaint(
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
                 x0 = z
+                model.model.args = args  # Pass args for profiling
                 # x0 = noised_z
                 def denoiser(x, sigma, c):
                     # if mask is not None:
@@ -424,6 +426,7 @@ def do_sdedit(
     masks=None,
     is_sige_model=False,
     difference_mask=None,
+    args,
 ):
     with torch.no_grad():
         with autocast(device) as precision_scope:
@@ -474,6 +477,8 @@ def do_sdedit(
                     1.0 + sigma ** 2.0
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
+                model.model.args = args  # Pass args for profiling
+                
                 # Used for decoding
                 def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)

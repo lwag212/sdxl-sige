@@ -265,6 +265,7 @@ class SamplingPipeline:
             mask=mask,
             conv_masks=conv_masks,
             shape=shape,
+            args = self.args,
         )
 
     def sdedit(
@@ -306,6 +307,7 @@ class SamplingPipeline:
             masks=masks,
             is_sige_model=is_sige_model,
             difference_mask=difference_mask,
+            args = self.args,
         )
 
     def image_to_image(
