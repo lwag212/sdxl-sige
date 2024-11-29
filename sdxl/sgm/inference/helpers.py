@@ -447,6 +447,8 @@ def do_sdedit(
 
                 for k in additional_kwargs:
                     c[k] = uc[k] = additional_kwargs[k]
+
+                if args is not None: model.first_stage_model.args = args
                 
                 if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                     assert isinstance(model.first_stage_model.encoder, SIGEModel)

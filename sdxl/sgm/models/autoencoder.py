@@ -212,7 +212,7 @@ class AutoencodingEngine(AbstractAutoencoder):
         return x
     
     def profile(self, encoder_decoder, x):
-        if self.args.mode == "profile_encoder":
+        if hasattr(self, 'args') and self.args.mode == "profile_encoder":
             if not hasattr(encoder_decoder, "mode") or encoder_decoder.mode == "sparse":
                 if hasattr(encoder_decoder, "mode"):
                     encoder_decoder.set_mode("profile")
