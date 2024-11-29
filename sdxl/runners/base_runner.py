@@ -98,7 +98,7 @@ class BaseRunner:
 
     def save_samples(self, samples):
         args = self.args
-        samples = torch.clamp((samples + 1) / 2, min=0, max=1)
+        # samples = torch.clamp((samples + 1) / 2, min=0, max=1)
         samples = samples.cpu().permute(0, 2, 3, 1).numpy()
         checked_image, _ = check_safety(samples)
         checked_image_torch = torch.from_numpy(checked_image)

@@ -85,7 +85,7 @@ class BaseDiffusionSampler:
                 x = apply_mask(x, init_img)
                 if is_sige:
                     set_mode_masks('full')
-                    self.sampler_step(
+                    _, old_denoised_x0 = self.sampler_step(
                         old_denoised_x0,
                         None if i == 0 else s_in * sigmas[i - 1],
                         s_in * sigmas[i],
