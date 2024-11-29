@@ -186,6 +186,7 @@ class SamplingPipeline:
         self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
         self.device = device
         self.model = self._load_model(device=device, use_fp16=use_fp16)
+        self.args = args
 
 
     def _load_model(self, device="cuda", use_fp16=True):

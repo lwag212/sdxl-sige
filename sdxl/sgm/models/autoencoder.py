@@ -200,6 +200,29 @@ class AutoencodingEngine(AbstractAutoencoder):
         unregularized: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
         z = self.encoder(x)
+        if self.args.mode == "profile_encoder":
+            if not hasattr(self.encoder, "mode") or self.encoder.mode == "sparse":
+                if hasattr(self.encoder, "mode"):
+                    self.encoder.set_mode("profile")
+                from torchprofile import profile_macs
+
+                macs = profile_macs(self.encoder, (x,))
+                print("MACs: %.3fG" % (macs / 1e9))
+
+                from tqdm import trange
+                import time
+
+                if hasattr(self.encoder, "mode"):
+                    self.encoder.set_mode("sparse")
+                for _ in trange(100):
+                    self.encoder(x)
+                    torch.cuda.synchronize()
+                start = time.time()
+                for _ in trange(100):
+                    self.encoder(x)
+                    torch.cuda.synchronize()
+                print(f"Time per forward pass: {(time.time() - start) * 10} ms\n\n\n")
+                exit(0)
         if unregularized:
             return z, dict()
         z, reg_log = self.regularization(z)
@@ -209,6 +232,29 @@ class AutoencodingEngine(AbstractAutoencoder):
 
     def decode(self, z: torch.Tensor, **kwargs) -> torch.Tensor:
         x = self.decoder(z, **kwargs)
+        if self.args.mode == "profile_decoder":
+            if not hasattr(self.decoder, "mode") or self.decoder.mode == "sparse":
+                if hasattr(self.decoder, "mode"):
+                    self.decoder.set_mode("profile")
+                from torchprofile import profile_macs
+
+                macs = profile_macs(self.decoder, (z,))
+                print("MACs: %.3fG" % (macs / 1e9))
+
+                from tqdm import trange
+                import time
+
+                if hasattr(self.decoder, "mode"):
+                    self.decoder.set_mode("sparse")
+                for _ in trange(100):
+                    self.decoder(z)
+                    torch.cuda.synchronize()
+                start = time.time()
+                for _ in trange(100):
+                    self.decoder(z)
+                    torch.cuda.synchronize()
+                print(f"Time per forward pass: {(time.time() - start) * 10} ms\n\n\n")
+                exit(0)
         return x
 
     def forward(
