@@ -192,6 +192,9 @@ class SamplingPipeline:
     def _load_model(self, device="cuda", use_fp16=True):
         config = OmegaConf.load(self.config)
         if self.args.mode == 'profile_unet': config['model']['params']['network_config']['params']['use_checkpoint'] = False
+        if self.args.mode in ['profile_encoder', 'profile_decoder']: 
+            attn_type = 'sige' if self.args.run_type == 'sige' else 'vanilla'
+            config['model']['params']['first_stage_config']['params']['ddconfig']['attn_type'] = attn_type
 
         model = load_model_from_config(config, self.ckpt)
         if model is None:

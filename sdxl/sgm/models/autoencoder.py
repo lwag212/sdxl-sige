@@ -516,18 +516,18 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
 
     def decode(self, z: torch.Tensor, **decoder_kwargs) -> torch.Tensor:
         if self.max_batch_size is None:
-            dec = self.post_quant_conv(z)
-            dec = self.decoder(dec, **decoder_kwargs)
-            self.profile(self.decoder, dec, "profile_decoder")
+            dec_z = self.post_quant_conv(z)
+            dec = self.decoder(dec_z, **decoder_kwargs)
+            self.profile(self.decoder, dec_z, "profile_decoder")
         else:
             N = z.shape[0]
             bs = self.max_batch_size
             n_batches = int(math.ceil(N / bs))
             dec = list()
             for i_batch in range(n_batches):
-                dec_batch = self.post_quant_conv(z[i_batch * bs : (i_batch + 1) * bs])
-                dec_batch = self.decoder(dec_batch, **decoder_kwargs)
-                self.profile(self.decoder, dec_batch[i_batch * bs : (i_batch + 1) * bs], "profile_decoder")
+                dec_batch_z = self.post_quant_conv(z[i_batch * bs : (i_batch + 1) * bs])
+                dec_batch = self.decoder(dec_batch_z, **decoder_kwargs)
+                self.profile(self.decoder, dec_batch_z, "profile_decoder")
                 dec.append(dec_batch)
             dec = torch.cat(dec, 0)
 
