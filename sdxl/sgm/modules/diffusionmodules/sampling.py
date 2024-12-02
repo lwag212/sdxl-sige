@@ -73,6 +73,9 @@ class BaseDiffusionSampler:
         return sigma_generator
 
     def sige_inpaint_call(self, denoiser, set_mode_masks, x, x0, cond, uc=None, num_steps=None, apply_mask=None, is_sige=False, **kwargs):
+        if x is None:
+            x = torch.randn_like(x0)
+
         x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
             x, cond, uc, num_steps
         )

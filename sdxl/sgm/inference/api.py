@@ -240,7 +240,6 @@ class SamplingPipeline:
         prompt: str,
         mask,
         conv_masks,
-        shape,
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
@@ -269,7 +268,6 @@ class SamplingPipeline:
             filter=None,
             mask=mask,
             conv_masks=conv_masks,
-            shape=shape,
             args = self.args,
         )
 

@@ -326,7 +326,6 @@ def do_inpaint(
     device="cuda",
     mask=None,
     conv_masks=None,
-    shape=None,
     args=None,
 ):
     with torch.no_grad():
@@ -356,31 +355,9 @@ def do_inpaint(
                     model.first_stage_model.encoder.set_mode("full")
                 z = model.encode_first_stage(img)
 
-                noise = torch.randn_like(z)
-                sigmas = sampler.discretization(sampler.num_steps)
-                sigma = sigmas[0].to(z.device)
-
-                if offset_noise_level > 0.0:
-                    noise = noise + offset_noise_level * append_dims(
-                        torch.randn(z.shape[0], device=z.device), z.ndim
-                    )
-                noised_z = z + noise * append_dims(sigma, z.ndim)
-                noised_z = noised_z / torch.sqrt(
-                    1.0 + sigmas[0] ** 2.0
-                )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
-
-                x0 = z
                 if args is not None: model.model.args = args  # Pass args for profiling
-                # x0 = noised_z
-                def denoiser(x, sigma, c):
-                    # if mask is not None:
-                    #     x = x0 * mask + (1.0 - mask) * x
-                    #     if isinstance(model.model.diffusion_model, SIGEUNetModel):
-                    #         model.model.diffusion_model.set_mode("full")
-                    #         model.denoiser(model.model, x0, sigma, c)
-                    #         model.model.diffusion_model.set_mode("sparse")
-                    #         model.model.diffusion_model.set_masks(conv_masks)
 
+                def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)
                 
                 def set_mode_masks(mode, set_masks=False):
@@ -390,8 +367,8 @@ def do_inpaint(
                 def apply_mask(x, x0):
                     return x0 * mask + (1.0 - mask) * x
                 
-
-                samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, noised_z, z, cond=c, uc=uc, 
+                z_T = None # Start with random
+                samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, z_T, z, cond=c, uc=uc, 
                                                  apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
                                                 )
 
@@ -463,14 +440,13 @@ def do_sdedit(
                 else:
                     init_latent = None
                     edited_latent = model.encode_first_stage(edited_img)
-                # z = model.encode_first_stage(img)
+
                 t_enc = int(value_dict['img2img_strength'] * value_dict['steps'])
                 print(f"target t_enc is {t_enc} steps")
 
                 noise = torch.randn_like(edited_latent)
                 sigmas = sampler.discretization(sampler.num_steps)
                 sigma = sigmas[0].to(edited_latent.device)
-                # sigma = sigmas[t_enc - 1].to(edited_latent.device)
 
                 if offset_noise_level > 0.0:
                     noise = noise + offset_noise_level * append_dims(
@@ -499,13 +475,9 @@ def do_sdedit(
                     
                     samples_init, samples_edited = sampler.sige_sdedit_call(denoiser, set_mode_masks, 
                                                                      z_enc_edited, z_enc_init, cond=c, uc=uc, is_sige=True)
-                    # # samples = samples_edited
                 else:
                     samples_init = None
                     samples_edited = sampler(denoiser, z_enc_edited, cond=c, uc=uc)
-                    # samples = sampler.decode(
-                    #     z_enc_edited, c, t_enc, unconditional_guidance_scale=args.scale, unconditional_conditioning=uc
-                    # )
 
                 if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                     difference_mask = dilate_mask(difference_mask, 40)
@@ -515,7 +487,6 @@ def do_sdedit(
                     model.decode_first_stage(samples_init)
                     model.first_stage_model.decoder.set_masks(masks)
                     model.first_stage_model.decoder.set_mode("sparse")
-                # samples = model.decode_first_stage(samples)
 
                 samples_x = model.decode_first_stage(samples_edited)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)

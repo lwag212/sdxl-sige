@@ -52,27 +52,11 @@ class BaseRunner:
         run_type = args.run_type
         assert run_type in ['original', 'sige']
 
-        # config = OmegaConf.load(args.config_path)
-        # model = load_model_from_config(config, args.weight_path)
-        # assert isinstance(model, DiffusionEngine)
-        # model = model.to(device)
-        # model.eval()
-
-        # model.model.args = args
-        # model.first_stage_model.args = args
-
-        # sampler = DDIMSampler(args, model)
-        # sampler.make_schedule(ddim_num_steps=args.ddim_steps, ddim_eta=args.ddim_eta, verbose=False)
-        # sampler = init_sampling(img2img_strength=SamplingParams.img2img_strength)
-
         wm = "SDXL"
         wm_encoder = WatermarkEncoder()
         wm_encoder.set_watermark("bytes", wm.encode("utf-8"))
 
         self.device = device
-        # self.config = config
-        # self.model = model
-        # self.sampler = sampler
         self.wm_encoder = wm_encoder
 
         self.model = SamplingPipeline(
@@ -90,15 +74,9 @@ class BaseRunner:
 
     def run(self):
         self.generate()
-        # model = self.model
-
-        # with torch.no_grad():
-        #     with model.ema_scope():
-        #         self.generate()
 
     def save_samples(self, samples):
         args = self.args
-        # samples = torch.clamp((samples + 1) / 2, min=0, max=1)
         samples = samples.cpu().permute(0, 2, 3, 1).numpy()
         checked_image, _ = check_safety(samples)
         checked_image_torch = torch.from_numpy(checked_image)
