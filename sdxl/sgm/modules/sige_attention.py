@@ -488,12 +488,18 @@ class SIGESpatialTransformer(SIGEModule, SpatialTransformer):
         context_dim=None,
         use_checkpoint=True,
         block_size: Optional[int] = 4,
+        disable_self_attn=False,
+        use_linear=False,
+        attn_type="softmax",
     ):
         super(SpatialTransformer, self).__init__()
         SIGEModule.__init__(self, call_super=False)
         self.in_channels = in_channels
         inner_dim = n_heads * d_head
         self.norm = Normalize(in_channels)
+
+        assert not use_linear, "Must use conv in SIGE transformers"
+        assert attn_type == 'softmax', f"{attn_type} attn is not supported for SIGE, use softmax"
 
         support_sparse = block_size is not None
         Conv2d = SIGEConv2d if support_sparse else nn.Conv2d
