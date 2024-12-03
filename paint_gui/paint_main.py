@@ -208,12 +208,16 @@ class PaintApp:
         self.canvas.create_image(self.x,self.y, anchor=tk.NW, image=self.current_image, tags="image_layer")
         return cropped_image
 
+
     def generate(self):
-        self.rot_value = 0 
-        self.crop_to_canvas(self.temp_base_image) 
+        if not self.has_paint:
+            self.rot_value = 0 
+            self.crop_to_canvas(self.temp_base_image) 
         #lock editing 
         self.DONE_EDITING = True 
-
+        
+        #the image that should be fed into SIGE-SDXL 
+        return self.current_image 
         
         
 IMAGE_STEP = 10
