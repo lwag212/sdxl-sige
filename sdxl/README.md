@@ -3,30 +3,48 @@
 ## Setup
 
 ### Environment
-* Create Conda environment:
+* Install SIGE:
+  ```shell
+  pip install -e /content/sdxl-sige
+  ```
+
+* Install dependencies:
 
   ```shell
-  conda env create -f environment.yaml
-  conda acitvate sige-sd
+  pip install torchprofile
+  pip install -r requirements.txt
   ```
 
-* Install other dependencies:
-
-  ```
-  pip install git+https://github.com/zhijian-liu/torchprofile
-  ```
-
-* Install SIGE following [../README.md](../README.md#installation).
-
-**Notice**: Currently Stable Diffusion benchmark only supports CUDA with FP32 precision.
+**Notice**: Currently SDXL's benchmark only supports CUDA with FP32 precision, there is overhead from casting the tensors to float 32 in SIGE.
 
 ### Models
 
-Download the model from https://github.com/CompVis/stable-diffusion. We used sd-v1-4 for our experiments. Put the model in `pretrained`.
+Download the model from https://github.com/CompVis/stable-diffusion. We used sdxl base 1.0 for our experiments. Put the model in `pretrained`.
 
 ```shell
 mkdir -p pretrained
-wget https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/resolve/main/sd-v1-4.ckpt -O pretrained/sd-v1-4.ckpt
+wget https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors -O pretrained/sd_xl_base_1.0.safetensors
+```
+
+The model comes with linear attention being the default in the transformer layers. We need to convert the tensor dimension to support convolution in the transformers:
+
+```
+from safetensors import safe_open
+from safetensors.torch import save_file
+import torch
+
+tensors = {}
+with safe_open('pretrained/sd_xl_base_1.0.safetensors', framework="pt", device=0) as f:
+  for k in f.keys():
+        tensors[k] = f.get_tensor(k)
+
+for k in tensors:
+  if 'diffusion_model' in k and ('proj_in.weight' in k or 'proj_out.weight' in k):
+    a,b = tensors[k].size()
+    tensors[k] = tensors[k].view(a,b,1,1)
+
+save_file(tensors, 'pretrained/sd_xl_base_1.0.safetensors')
+del tensors
 ```
 
 ## Get Started
@@ -41,7 +59,8 @@ wget https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/resolve/main
   python run.py --prompt "a photograph of a horse on a grassland" \
   --output_path inpainting-original.png \
   --init_img assets/inpainting/original/0.png \
-  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 36
+  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 53 \
+  --weight_path pretrained
   ```
 
 * SIGE Stable Diffusion
@@ -50,8 +69,10 @@ wget https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/resolve/main
   python run.py --prompt "a photograph of a horse on a grassland" \
   --output_path inpainting-sige.png \
   --init_img assets/inpainting/original/0.png \
-  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 36 \
-  --config_path configs/sige.yaml
+  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 53 \
+  --config_path configs \
+  --weight_path pretrained \
+  --run_type sige
   ```
 
 The generated images `inpainting-original.png` and `inpainting-sige.png` should look very similar.
@@ -63,7 +84,7 @@ The generated images `inpainting-original.png` and `inpainting-sige.png` should 
   ```shell
   python run.py --prompt "a photograph of a horse on a grassland" \
   --init_img assets/inpainting/original/0.png \
-  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 36 \
+  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 53 \
   --mode profile_unet
   ```
 
@@ -72,12 +93,13 @@ The generated images `inpainting-original.png` and `inpainting-sige.png` should 
   ```shell
   python run.py --prompt "a photograph of a horse on a grassland" \
   --init_img assets/inpainting/original/0.png \
-  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 36 \
-  --config_path configs/sige.yaml \
-  --mode profile_unet
+  --mask_path assets/inpainting/masks/0.npy --W 1024 --seed 53 \
+  --config_path configs \
+  --mode profile_unet \
+  --run_type sige
   ```
 
-You can also profile the decoder with the argument `--mode profile_decoder`. Reference results on NVIDIA RTX 3090:
+You can also profile the decoder with the argument `--mode profile_decoder`. Reference results on Google Colab's A100 GPU.
 
 <table>
 <thead>
@@ -96,17 +118,17 @@ You can also profile the decoder with the argument `--mode profile_decoder`. Ref
 <tbody>
   <tr>
     <td style="text-align: center;">Original</td>
-    <td style="text-align: center;">1854.8</td>
-    <td style="text-align: center;">368.6</td>
-    <td style="text-align: center;">2550.8</td>
-    <td style="text-align: center;">235.0</td>
+    <td style="text-align: center;">3015.82</td>
+    <td style="text-align: center;">194.90</td>
+    <td style="text-align: center;">2481.99</td>
+    <td style="text-align: center;">113.89</td>
   </tr>
   <tr>
     <td style="text-align: center;">SIGE</td>
-    <td style="text-align: center;">514.5</td>
-    <td style="text-align: center;">95.0</td>
-    <td style="text-align: center;">343.5</td>
-    <td style="text-align: center;">48.0</td>
+    <td style="text-align: center;">974.42</td>
+    <td style="text-align: center;">142.34</td>
+    <td style="text-align: center;">343.51</td>
+    <td style="text-align: center;">27.16</td>
   </tr>
 </tbody>
 </table>
@@ -140,15 +162,17 @@ You can also profile the decoder with the argument `--mode profile_decoder`. Ref
   --output_path img2img-sige0.png \
   --init_img assets/img2img/original/0.png \
   --edited_img assets/img2img/edited/0.png --seed 11 \
-  --config_path configs/sige.yaml
-  
+  --config_path configs \
+  --run_type sige
+
   # Example 1
   python run.py --task sdedit \
   --prompt "A fantasy beach landscape, trending on artstation" \
   --output_path img2img-sige1.png \
   --init_img assets/img2img/original/1.png \
   --edited_img assets/img2img/edited/1.png --seed 95 \
-  --config_path configs/sige.yaml
+  --config_path configs \
+  --run_type sige
   ```
 
 The generated images of each example should look very similar.
@@ -177,17 +201,19 @@ The generated images of each example should look very similar.
   --prompt "A fantasy landscape, trending on artstation" \
   --init_img assets/img2img/original/0.png \
   --edited_img assets/img2img/edited/0.png --seed 11 \
-  --config_path configs/sige.yaml --mode profile_unet
-  
+  --config_path configs --mode profile_unet \
+  --run_type sige
+
   # Example 1
   python run.py --task sdedit \
   --prompt "A fantasy beach landscape, trending on artstation" \
   --init_img assets/img2img/original/1.png \
   --edited_img assets/img2img/edited/1.png --seed 95 \
-  --config_path configs/sige.yaml --mode profile_unet
+  --config_path configs --mode profile_unet \
+  --run_type sige
   ```
 
-You can also profile the encoder with the argument `--mode profile_encoder` and decoder with `--mode profile_decoder`. Reference results on NVIDIA RTX 3090:
+You can also profile the encoder with the argument `--mode profile_encoder` and decoder with `--mode profile_decoder`. Reference results on Google Colab's A100 GPU.
 
 <table>
 <thead>
@@ -211,31 +237,31 @@ You can also profile the encoder with the argument `--mode profile_encoder` and 
   <tr>
     <td style="text-align: center;">Original</td>
     <td style="text-align: center;">--</td>
-    <td style="text-align: center;">1854.8</td>
-    <td style="text-align: center;">368.6</td>
-    <td style="text-align: center;">1152.1</td>
-    <td style="text-align: center;">115.2</td>
-    <td style="text-align: center;">2550.8</td>
-    <td style="text-align: center;">235.0</td>
+    <td style="text-align: center;">3015.82</td>
+    <td style="text-align: center;">191.58</td>
+    <td style="text-align: center;">1083.27</td>
+    <td style="text-align: center;">62.53</td>
+    <td style="text-align: center;">2481.99</td>
+    <td style="text-align: center;">114.06</td>
   </tr>
   <tr>
     <td rowspan="2" style="text-align: center;">SIGE</td>
     <td style="text-align: center;">0</td>
-    <td style="text-align: center;">224.9</td>
-    <td style="text-align: center;">51.2</td>
-    <td style="text-align: center;">39.2</td>
-    <td style="text-align: center;">10.1</td>
-    <td style="text-align: center;">154.2</td>
-    <td style="text-align: center;">30.7</td>
+    <td style="text-align: center;">592.03</td>
+    <td style="text-align: center;">140.48</td>
+    <td style="text-align: center;">39.18</td>
+    <td style="text-align: center;">6.17</td>
+    <td style="text-align: center;">154.22</td>
+    <td style="text-align: center;">19.09</td>
   </tr>
   <tr>
     <td style="text-align: center;">1</td>
-    <td style="text-align: center;">352.6</td>
-    <td style="text-align: center;">76.4</td>
-    <td style="text-align: center;">76.3</td>
-    <td style="text-align: center;">14.5</td>
-    <td style="text-align: center;">318.3</td>
-    <td style="text-align: center;">45.6</td>
+    <td style="text-align: center;">876.87</td>
+    <td style="text-align: center;">140.32</td>
+    <td style="text-align: center;">76.29</td>
+    <td style="text-align: center;">8.32</td>
+    <td style="text-align: center;">318.28</td>
+    <td style="text-align: center;">26.13</td>
   </tr>
 </tbody>
 </table>
