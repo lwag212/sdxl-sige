@@ -11,32 +11,10 @@ from torch.backends import cudnn
 from tqdm import tqdm
 from transformers import AutoFeatureExtractor
 
-# from ldm.util import instantiate_from_config
-
 # load safety model
 safety_model_id = "CompVis/stable-diffusion-safety-checker"
 safety_feature_extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
 safety_checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
-
-
-# def load_model_from_config(config, weight_path: str, verbose: bool = False):
-#     print(f"Loading model from {weight_path}")
-#     pl_sd = torch.load(weight_path, map_location="cpu")
-#     if "global_step" in pl_sd:
-#         print(f"Global Step: {pl_sd['global_step']}")
-#     sd = pl_sd["state_dict"]
-#     model = instantiate_from_config(config.model)
-#     m, u = model.load_state_dict(sd, strict=False)
-#     if len(m) > 0 and verbose:
-#         print("missing keys:")
-#         print(m)
-#     if len(u) > 0 and verbose:
-#         print("unexpected keys:")
-#         print(u)
-
-#     # model.cuda()
-#     model.eval()
-#     return model
 
 
 def put_watermark(img: Image, wm_encoder: Optional[WatermarkEncoder] = None) -> Image:
