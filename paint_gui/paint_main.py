@@ -7,6 +7,7 @@ class PaintApp:
     def __init__(self, root, base_image_path: str):
         self.root = root
         self.root.title("Paint App")
+        self.base_image_path = base_image_path
 
         # Current color
         self.current_color = "black"
@@ -38,6 +39,7 @@ class PaintApp:
 
         palette_frame = tk.Frame(self.root, padx=5, pady=5)
         palette_frame.pack(side=tk.LEFT, fill=tk.Y)
+    
 
         # Creates the color buttons
         for i, color in enumerate(colors):
@@ -45,15 +47,29 @@ class PaintApp:
                 palette_frame, bg=color, width=3, height=2,
                 command=lambda col=color: self.change_color(col)
             )
-            color_button.grid(row=i // 2, column=i % 2)
-
+            color_button.grid(row=i // 2, column=i % 2,pady=2)
+    
         # Creates the shift buttons
         for i,direction in enumerate(["^", "v", "<", ">"]):
             button = tk.Button(
                 palette_frame, text=direction, font=("Helvetica", 12),
                 width=3, height=2, command=lambda d=direction: self.shift(d)
             )
-            button.grid(row=5+i//2, column=i%2)
+            button.grid(row=5+i//2, column=i%2,pady=4)
+
+        erase_button = tk.Button(
+                palette_frame, text="reset", font=("Helvetica",12),width = 6, height = 2, command= self.erase
+        )
+        erase_button.grid(row=10, column=0, columnspan=2, pady=4)
+
+
+    def erase(self):
+        self.canvas.delete("all")
+        self.current_image = ImageTk.PhotoImage(Image.open(self.base_image_path))
+        self.base_image = self.current_image
+        self.canvas.create_image(2, 2, anchor=tk.NW, image=self.current_image)
+
+
 
     def change_color(self, new_color):
         self.current_color = new_color
@@ -68,7 +84,6 @@ class PaintApp:
         self.init_x, self.init_y = None, None
 
     def shift(self, direction: str):
-
         # Computes the direction to shift
         dx, dy = 0, 0
         if direction == "^":
@@ -92,11 +107,17 @@ class PaintApp:
                 x0,y0,x1,y1 = x0+dx,y0+dy,x1+dx,y1+dy
                 self.canvas.coords(item, (x0,y0,x1,y1))
 
+
+    # def rotate(self,direction: str, degrees: int):
+
+
+
+        
         
 IMAGE_STEP = 10
 IMAGE_WIDTH = 1024
 IMAGE_HEIGHT = 1024
-IMAGE_PATH = "original.png"
+IMAGE_PATH = "./pic.png"
 
 if __name__ == "__main__":
     root = tk.Tk()
