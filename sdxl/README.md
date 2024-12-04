@@ -26,7 +26,7 @@ mkdir -p pretrained
 wget https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors -O pretrained/sd_xl_base_1.0.safetensors
 ```
 
-The model comes with linear attention being the default in the transformer layers. We need to convert the tensor dimension to support convolution in the transformers:
+The model comes with linear attention being the default in the transformer layers. We need to convert the tensor dimension to support convolution in the transformers. It also sends fp16 weights, which need to be casted to fp32:
 
 ```
 from safetensors import safe_open
@@ -39,6 +39,7 @@ with safe_open('pretrained/sd_xl_base_1.0.safetensors', framework="pt", device=0
         tensors[k] = f.get_tensor(k)
 
 for k in tensors:
+  tensors[k] = tensors[k].type(torch.float32)
   if 'diffusion_model' in k and ('proj_in.weight' in k or 'proj_out.weight' in k):
     a,b = tensors[k].size()
     tensors[k] = tensors[k].view(a,b,1,1)
@@ -126,7 +127,7 @@ You can also profile the decoder with the argument `--mode profile_decoder`. Ref
   <tr>
     <td style="text-align: center;">SIGE</td>
     <td style="text-align: center;">974.42</td>
-    <td style="text-align: center;">142.34</td>
+    <td style="text-align: center;">130.08</td>
     <td style="text-align: center;">343.51</td>
     <td style="text-align: center;">27.16</td>
   </tr>
@@ -221,7 +222,7 @@ You can also profile the encoder with the argument `--mode profile_encoder` and 
     <th rowspan="2" style="text-align: center;">Method</th>
     <th rowspan="2" style="text-align: center;">Example</th>
     <th colspan="2" style="text-align: center;">UNet</th>
-    <th colspan="2" style="text-align: center;">Eecoder</th>
+    <th colspan="2" style="text-align: center;">Encoder</th>
     <th colspan="2" style="text-align: center;">Decoder</th>
   </tr>
   <tr>
@@ -248,7 +249,7 @@ You can also profile the encoder with the argument `--mode profile_encoder` and 
     <td rowspan="2" style="text-align: center;">SIGE</td>
     <td style="text-align: center;">0</td>
     <td style="text-align: center;">592.03</td>
-    <td style="text-align: center;">140.48</td>
+    <td style="text-align: center;">112.15</td>
     <td style="text-align: center;">39.18</td>
     <td style="text-align: center;">6.17</td>
     <td style="text-align: center;">154.22</td>
@@ -257,7 +258,7 @@ You can also profile the encoder with the argument `--mode profile_encoder` and 
   <tr>
     <td style="text-align: center;">1</td>
     <td style="text-align: center;">876.87</td>
-    <td style="text-align: center;">140.32</td>
+    <td style="text-align: center;">125.16</td>
     <td style="text-align: center;">76.29</td>
     <td style="text-align: center;">8.32</td>
     <td style="text-align: center;">318.28</td>
