@@ -35,12 +35,11 @@ class SIGEDownsample(SIGEModule):
         self.op = SIGEConv2d(self.channels, self.out_channels, 3, stride=stride, padding=padding)
         self.gather = Gather(self.op, block_size=block_size)
         self.scatter = Scatter(self.gather)
-        self.dtype = th.float32
 
     def forward(self, x):
         assert x.shape[1] == self.channels
         x = self.gather(x)
-        x = self.op(x).type(self.dtype)
+        x = self.op(x)
         x = self.scatter(x)
         return x
 
@@ -65,13 +64,12 @@ class SIGEUpsample(SIGEModule):
         self.conv = SIGEConv2d(self.channels, self.out_channels, 3, padding=padding)
         self.gather = Gather(self.conv, block_size=block_size)
         self.scatter = Scatter(self.gather)
-        self.dtype = th.float32
 
     def forward(self, x):
         assert x.shape[1] == self.channels
         x = F.interpolate(x, scale_factor=2, mode="nearest")
         x = self.gather(x)
-        x = self.conv(x).type(self.dtype)
+        x = self.conv(x)
         x = self.scatter(x)
         return x
 
@@ -100,7 +98,6 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         self.use_conv = use_conv
         self.use_checkpoint = use_checkpoint
         self.use_scale_shift_norm = use_scale_shift_norm
-        self.dtype = th.float32  # SIGE only supports float 32
 
         assert dims == 2
 
@@ -170,7 +167,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         main_support_sparse = self.main_support_sparse
         shortcut_support_sparse = self.shortcut_support_sparse
 
-        h = x.type(self.dtype)
+        h = x
         if self.channels != self.out_channels:
             if shortcut_support_sparse:
                 x = self.shortcut_gather(x)
@@ -181,7 +178,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         h, scale, shift = my_group_norm(h, self.in_layers[0])
         self.scale1, self.shift1 = scale, shift
         h = self.in_layers[1](h)
-        h = self.in_layers[2](h).type(self.dtype)
+        h = self.in_layers[2](h)
         if main_support_sparse:
             h = self.scatter_gather(h)
         emb_out = self.emb_layers(emb).type(h.dtype)
@@ -200,8 +197,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         self.scale2, self.shift2 = scale, shift
         h = self.out_layers[1](h)
         h = self.out_layers[2](h)
-        h = self.out_layers[3](h).type(self.dtype)
-        x = x.type(self.dtype)
+        h = self.out_layers[3](h)
         if main_support_sparse:
             h = self.scatter(h, x)
         else:
@@ -212,7 +208,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         main_support_sparse = self.main_support_sparse
         shortcut_support_sparse = self.shortcut_support_sparse
 
-        h = x.type(self.dtype)
+        h = x
         if self.channels != self.out_channels:
             if shortcut_support_sparse:
                 x = self.shortcut_gather(x)
@@ -222,7 +218,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
         else:
             h = h * self.scale1 + self.shift1
             h = self.in_layers[1](h)
-        h = self.in_layers[2](h).type(self.dtype)
+        h = self.in_layers[2](h)
 
         if main_support_sparse:
             h = self.scatter_gather(h, self.scale2, self.shift2)
@@ -230,8 +226,7 @@ class SIGEResBlock(TimestepBlock, SIGEModule):
             h = h * self.scale2 + self.shift2
             h = self.out_layers[1](h)
         h = self.out_layers[2](h)
-        h = self.out_layers[3](h).type(self.dtype)
-        x = x.type(self.dtype)
+        h = self.out_layers[3](h)
         if main_support_sparse:
             h = self.scatter(h, x)
         else:

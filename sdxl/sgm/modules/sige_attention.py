@@ -158,7 +158,7 @@ class SIGESpatialTransformer(SIGEModule, SpatialTransformer):
         else:
             raise NotImplementedError("Unknown mode [%s]!!!" % self.mode)
 
-        x = self.proj_in(x).type(torch.float32)
+        x = self.proj_in(x)
 
         if self.support_sparse:
             full_x = self.scatter1(x)
@@ -200,7 +200,7 @@ class SIGESpatialTransformer(SIGEModule, SpatialTransformer):
         else:
             x = rearrange(x, "b (h w) c -> b c h w", h=h, w=w)
 
-        x = self.proj_out(x).type(torch.float32)
+        x = self.proj_out(x)
         if self.support_sparse:
             x = self.scatter2(x, x_in)
         else:

@@ -55,8 +55,6 @@ class LegacyDDPMDiscretization(Discretization):
         alphas = 1.0 - betas
         self.alphas_cumprod = np.cumprod(alphas, axis=0)
         self.to_torch = partial(torch.tensor, dtype=torch.float32)
-        # self.alphas = alphas
-        # self.sqrt_one_minus_alphas = torch.sqrt(1 - alphas)
 
     def get_sigmas(self, n, device="cpu"):
         if n < self.num_timesteps:
@@ -70,16 +68,3 @@ class LegacyDDPMDiscretization(Discretization):
         to_torch = partial(torch.tensor, dtype=torch.float32, device=device)
         sigmas = to_torch((1 - alphas_cumprod) / alphas_cumprod) ** 0.5
         return torch.flip(sigmas, (0,))
-    
-    # def stochastic_encode(self, x0, t, noise=None):
-    #     # fast, but does not allow for exact reconstruction
-    #     # t serves as an index to gather the correct alphas
-    #     sqrt_alphas_cumprod = torch.sqrt(self.alphas)
-    #     sqrt_one_minus_alphas_cumprod = self.sqrt_one_minus_alphas
-
-    #     if noise is None:
-    #         noise = torch.randn_like(x0)
-    #     return (
-    #         extract_into_tensor(sqrt_alphas_cumprod, t, x0.shape) * x0
-    #         + extract_into_tensor(sqrt_one_minus_alphas_cumprod, t, x0.shape) * noise
-    #     )

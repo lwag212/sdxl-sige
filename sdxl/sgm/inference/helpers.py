@@ -329,64 +329,63 @@ def do_inpaint(
     args=None,
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
-            with model.ema_scope():
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    [num_samples],
-                )
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
+        with model.ema_scope():
+            batch, batch_uc = get_batch(
+                get_unique_embedder_keys_from_conditioner(model.conditioner),
+                value_dict,
+                [num_samples],
+            )
+            c, uc = model.conditioner.get_unconditional_conditioning(
+                batch,
+                batch_uc=batch_uc,
+                force_uc_zero_embeddings=force_uc_zero_embeddings,
+            )
 
-                for k in c:
-                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
+            for k in c:
+                c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
 
-                for k in additional_kwargs:
-                    c[k] = uc[k] = additional_kwargs[k]
+            for k in additional_kwargs:
+                c[k] = uc[k] = additional_kwargs[k]
 
-                if args is not None: model.first_stage_model.args = args
-                
-                if isinstance(model.first_stage_model, SIGEAutoencoderKL):
-                    assert isinstance(model.first_stage_model.encoder, SIGEModel)
-                    model.first_stage_model.encoder.set_mode("full")
-                z = model.encode_first_stage(img)
+            if args is not None: model.first_stage_model.args = args
+            
+            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+                assert isinstance(model.first_stage_model.encoder, SIGEModel)
+                model.first_stage_model.encoder.set_mode("full")
+            z = model.encode_first_stage(img)
 
-                if args is not None: model.model.args = args  # Pass args for profiling
+            if args is not None: model.model.args = args  # Pass args for profiling
 
-                def denoiser(x, sigma, c):
-                    return model.denoiser(model.model, x, sigma, c)
-                
-                def set_mode_masks(mode, set_masks=False):
-                    model.model.diffusion_model.set_mode(mode)
-                    if set_masks: model.model.diffusion_model.set_masks(conv_masks)
-                
-                def apply_mask(x, x0):
-                    return x0 * mask + (1.0 - mask) * x
-                
-                z_T = None # Start with random
-                samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, z_T, z, cond=c, uc=uc, 
-                                                 apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
-                                                )
+            def denoiser(x, sigma, c):
+                return model.denoiser(model.model, x, sigma, c)
+            
+            def set_mode_masks(mode, set_masks=False):
+                model.model.diffusion_model.set_mode(mode)
+                if set_masks: model.model.diffusion_model.set_masks(conv_masks)
+            
+            def apply_mask(x, x0):
+                return x0 * mask + (1.0 - mask) * x
+            
+            z_T = None # Start with random
+            samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, z_T, z, cond=c, uc=uc, 
+                                                apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
+                                            )
 
-                if isinstance(model.first_stage_model, SIGEAutoencoderKL):
-                    assert isinstance(model.first_stage_model.decoder, SIGEModel)
-                    model.first_stage_model.decoder.set_mode("full")
-                    model.decode_first_stage(z)
-                    model.first_stage_model.decoder.set_masks(conv_masks)
-                    model.first_stage_model.decoder.set_mode("sparse")
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+                assert isinstance(model.first_stage_model.decoder, SIGEModel)
+                model.first_stage_model.decoder.set_mode("full")
+                model.decode_first_stage(z)
+                model.first_stage_model.decoder.set_masks(conv_masks)
+                model.first_stage_model.decoder.set_mode("sparse")
+            samples_x = model.decode_first_stage(samples_z)
+            samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
-                if filter is not None:
-                    samples = filter(samples)
+            if filter is not None:
+                samples = filter(samples)
 
-                if return_latents:
-                    return samples, samples_z
-                return samples
+            if return_latents:
+                return samples, samples_z
+            return samples
 
 def do_sdedit(
     edited_img,
@@ -408,92 +407,91 @@ def do_sdedit(
     args=None,
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
-            with model.ema_scope():
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    [num_samples],
+        with model.ema_scope():
+            batch, batch_uc = get_batch(
+                get_unique_embedder_keys_from_conditioner(model.conditioner),
+                value_dict,
+                [num_samples],
+            )
+            c, uc = model.conditioner.get_unconditional_conditioning(
+                batch,
+                batch_uc=batch_uc,
+                force_uc_zero_embeddings=force_uc_zero_embeddings,
+            )
+
+            for k in c:
+                c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
+
+            for k in additional_kwargs:
+                c[k] = uc[k] = additional_kwargs[k]
+
+            if args is not None: model.first_stage_model.args = args
+            
+            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+                assert isinstance(model.first_stage_model.encoder, SIGEModel)
+                assert init_img is not None, "Must provide an initial image for SIGE model"
+                model.first_stage_model.encoder.set_mode("full")
+                init_latent = model.encode_first_stage(init_img)
+                model.first_stage_model.encoder.set_mode("sparse")
+                model.first_stage_model.encoder.set_masks(masks)
+                edited_latent = model.encode_first_stage(edited_img)
+            else:
+                init_latent = None
+                edited_latent = model.encode_first_stage(edited_img)
+
+            t_enc = int(value_dict['img2img_strength'] * value_dict['steps'])
+            print(f"target t_enc is {t_enc} steps")
+
+            noise = torch.randn_like(edited_latent)
+            sigmas = sampler.discretization(sampler.num_steps)
+            sigma = sigmas[0].to(edited_latent.device)
+
+            if offset_noise_level > 0.0:
+                noise = noise + offset_noise_level * append_dims(
+                    torch.randn(edited_latent.shape[0], device=edited_latent.device), edited_latent.ndim
                 )
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
+            noised_edited = edited_latent + noise * append_dims(sigma, edited_latent.ndim)
+            z_enc_edited = noised_edited / torch.sqrt(
+                1.0 + sigma ** 2.0
+            )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
 
-                for k in c:
-                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
-
-                for k in additional_kwargs:
-                    c[k] = uc[k] = additional_kwargs[k]
-
-                if args is not None: model.first_stage_model.args = args
-                
-                if isinstance(model.first_stage_model, SIGEAutoencoderKL):
-                    assert isinstance(model.first_stage_model.encoder, SIGEModel)
-                    assert init_img is not None, "Must provide an initial image for SIGE model"
-                    model.first_stage_model.encoder.set_mode("full")
-                    init_latent = model.encode_first_stage(init_img)
-                    model.first_stage_model.encoder.set_mode("sparse")
-                    model.first_stage_model.encoder.set_masks(masks)
-                    edited_latent = model.encode_first_stage(edited_img)
-                else:
-                    init_latent = None
-                    edited_latent = model.encode_first_stage(edited_img)
-
-                t_enc = int(value_dict['img2img_strength'] * value_dict['steps'])
-                print(f"target t_enc is {t_enc} steps")
-
-                noise = torch.randn_like(edited_latent)
-                sigmas = sampler.discretization(sampler.num_steps)
-                sigma = sigmas[0].to(edited_latent.device)
-
-                if offset_noise_level > 0.0:
-                    noise = noise + offset_noise_level * append_dims(
-                        torch.randn(edited_latent.shape[0], device=edited_latent.device), edited_latent.ndim
-                    )
-                noised_edited = edited_latent + noise * append_dims(sigma, edited_latent.ndim)
-                z_enc_edited = noised_edited / torch.sqrt(
+            if args is not None: model.model.args = args  # Pass args for profiling
+            
+            # Used for decoding
+            def denoiser(x, sigma, c):
+                return model.denoiser(model.model, x, sigma, c)
+            
+            def set_mode_masks(mode, set_masks=False):
+                model.model.diffusion_model.set_mode(mode)
+                if set_masks: model.model.diffusion_model.set_masks(masks)
+            
+            if is_sige_model:
+                noised_init = init_latent + noise * append_dims(sigma, init_latent.ndim)
+                z_enc_init = noised_init / torch.sqrt(
                     1.0 + sigma ** 2.0
                 )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
-
-                if args is not None: model.model.args = args  # Pass args for profiling
                 
-                # Used for decoding
-                def denoiser(x, sigma, c):
-                    return model.denoiser(model.model, x, sigma, c)
-                
-                def set_mode_masks(mode, set_masks=False):
-                    model.model.diffusion_model.set_mode(mode)
-                    if set_masks: model.model.diffusion_model.set_masks(masks)
-                
-                if is_sige_model:
-                    noised_init = init_latent + noise * append_dims(sigma, init_latent.ndim)
-                    z_enc_init = noised_init / torch.sqrt(
-                        1.0 + sigma ** 2.0
-                    )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
-                    
-                    samples_init, samples_edited = sampler.sige_sdedit_call(denoiser, set_mode_masks, 
-                                                                     z_enc_edited, z_enc_init, cond=c, uc=uc, is_sige=True)
-                else:
-                    samples_init = None
-                    samples_edited = sampler(denoiser, z_enc_edited, cond=c, uc=uc)
+                samples_init, samples_edited = sampler.sige_sdedit_call(denoiser, set_mode_masks, 
+                                                                    z_enc_edited, z_enc_init, cond=c, uc=uc, is_sige=True)
+            else:
+                samples_init = None
+                samples_edited = sampler(denoiser, z_enc_edited, cond=c, uc=uc)
 
-                if isinstance(model.first_stage_model, SIGEAutoencoderKL):
-                    difference_mask = dilate_mask(difference_mask, 40)
-                    masks = downsample_mask(difference_mask, min_res=(4, 4), dilation=0)
-                    assert isinstance(model.first_stage_model.decoder, SIGEModel)
-                    model.first_stage_model.decoder.set_mode("full")
-                    model.decode_first_stage(samples_init)
-                    model.first_stage_model.decoder.set_masks(masks)
-                    model.first_stage_model.decoder.set_mode("sparse")
+            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+                difference_mask = dilate_mask(difference_mask, 40)
+                masks = downsample_mask(difference_mask, min_res=(4, 4), dilation=0)
+                assert isinstance(model.first_stage_model.decoder, SIGEModel)
+                model.first_stage_model.decoder.set_mode("full")
+                model.decode_first_stage(samples_init)
+                model.first_stage_model.decoder.set_masks(masks)
+                model.first_stage_model.decoder.set_mode("sparse")
 
-                samples_x = model.decode_first_stage(samples_edited)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+            samples_x = model.decode_first_stage(samples_edited)
+            samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
-                if filter is not None:
-                    samples = filter(samples)
+            if filter is not None:
+                samples = filter(samples)
 
-                if return_latents:
-                    return samples, samples_edited
-                return samples
+            if return_latents:
+                return samples, samples_edited
+            return samples
