@@ -10,8 +10,7 @@ from einops import repeat
 from sige.utils import downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner
-from sgm.inference.api import *
-from sgm.inference.helpers import *
+from sgm.inference.api import SamplingParams
 
 
 class InpaintingRunner(BaseRunner):
