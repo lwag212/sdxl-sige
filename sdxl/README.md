@@ -120,7 +120,7 @@ You can also profile the decoder with the argument `--mode profile_decoder`. Ref
   <tr>
     <td style="text-align: center;">Original</td>
     <td style="text-align: center;">3015.82</td>
-    <td style="text-align: center;">194.90</td>
+    <td style="text-align: center;">319.99</td>
     <td style="text-align: center;">2481.99</td>
     <td style="text-align: center;">113.89</td>
   </tr>
@@ -239,7 +239,7 @@ You can also profile the encoder with the argument `--mode profile_encoder` and 
     <td style="text-align: center;">Original</td>
     <td style="text-align: center;">--</td>
     <td style="text-align: center;">3015.82</td>
-    <td style="text-align: center;">191.58</td>
+    <td style="text-align: center;">320.77</td>
     <td style="text-align: center;">1083.27</td>
     <td style="text-align: center;">62.53</td>
     <td style="text-align: center;">2481.99</td>
