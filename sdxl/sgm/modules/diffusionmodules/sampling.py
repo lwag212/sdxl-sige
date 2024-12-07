@@ -248,6 +248,71 @@ class AncestralSampler(SingleStepDiffusionSampler):
 
         return x
 
+    def sige_inpaint_call(self, denoiser, set_mode_masks, x, x0, cond, uc=None, num_steps=None, apply_mask=None, is_sige=False, **kwargs):
+        if x is None:
+            x = torch.randn_like(x0)
+
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+
+        for i in self.get_sigma_gen(num_sigmas):
+            if apply_mask is not None:
+                init_img = x0 + torch.randn_like(x0) * append_dims(sigmas[i], x0.ndim)
+                x = apply_mask(x, init_img)
+                if is_sige:
+                    set_mode_masks('full')
+                    self.sampler_step(
+                        s_in * sigmas[i],
+                        s_in * sigmas[i + 1],
+                        denoiser,
+                        init_img,
+                        cond,
+                        uc=uc,
+                    )
+                    set_mode_masks('sparse', True)
+            
+            x = self.sampler_step(
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                x,
+                cond,
+                uc=uc,
+            )
+
+        return x
+    
+    def sige_sdedit_call(self, denoiser, set_mode_masks, edited_x, init_x, cond, uc=None, num_steps=None, **kwargs):
+        edited_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            edited_x, cond, uc, num_steps
+        )
+        init_x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            init_x, cond, uc, num_steps
+        )
+
+        for i in self.get_sigma_gen(num_sigmas):
+            set_mode_masks('full')
+            init_x = self.sampler_step(
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                init_x,
+                cond,
+                uc=uc,
+            )
+            set_mode_masks('sparse', True)
+            edited_x = self.sampler_step(
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                edited_x,
+                cond,
+                uc=uc,
+            )
+
+        return init_x, edited_x
+
 
 class LinearMultistepSampler(BaseDiffusionSampler):
     def __init__(
