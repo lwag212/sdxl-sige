@@ -28,6 +28,9 @@ class ModelArchitecture(str, Enum):
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_SIGE_V1_BASE = "sige-stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SDXL_SIGE_V1_REFINER = "sige-stable-diffusion-xl-v1-refiner"
+    SDXL_TURBO = "stable-diffusion-xl-turbo"
+    SDXL_SIGE_TURBO = "sige-stable-diffusion-xl-turbo"
 
 
 class Sampler(str, Enum):
@@ -162,6 +165,36 @@ model_specs = {
         is_legacy=True,
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_SIGE_V1_REFINER: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=True,
+        config="sige_sd_xl_refiner.yaml",
+        ckpt="sd_xl_refiner_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_TURBO: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=False,
+        config="original.yaml",
+        ckpt="sd_xl_turbo_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_SIGE_TURBO: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=False,
+        config="sige.yaml",
+        ckpt="sd_xl_turbo_1.0.safetensors",
         is_guided=True,
     ),
 }

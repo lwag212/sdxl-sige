@@ -30,8 +30,10 @@ class SDEditRunner(BaseRunner):
         params = SamplingParams()
         params.img2img_strength = args.strength
         is_sige_model = (
-            args.run_type == 'sige'
+            'sige' in args.run_type
         )
+        if 'turbo' in args.run_type:
+            params.steps = 1
 
         # Load images and compute difference if necessary
         edited_img = load_img(args.edited_img).to(device)

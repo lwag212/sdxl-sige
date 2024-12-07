@@ -31,11 +31,11 @@ class InpaintingRunner(BaseRunner):
         args = self.args
         device = self.device
 
-        # Works better with lower image strength
         params = SamplingParams()
-        # params.img2img_strength = .8
         params.width = args.W
         params.height = args.H
+        if 'turbo' in args.run_type:
+            params.steps = 1
 
         # Generate the masks
         shape = (args.C, args.H // args.f, args.W // args.f)
