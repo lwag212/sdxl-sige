@@ -9,7 +9,7 @@ from sige.nn import SIGEModel
 from sige.utils import compute_difference_mask, dilate_mask, downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner
-from sgm.inference.api import SamplingParams
+from sgm.inference.api import SamplingParams, Sampler
 
 
 class SDEditRunner(BaseRunner):
@@ -33,7 +33,7 @@ class SDEditRunner(BaseRunner):
             'sige' in args.run_type
         )
         if 'turbo' in args.run_type:
-            params.steps = 1
+            params.sampler = Sampler.TURBO_SAMPLER
 
         # Load images and compute difference if necessary
         edited_img = load_img(args.edited_img).to(device)

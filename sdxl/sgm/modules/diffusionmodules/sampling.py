@@ -439,3 +439,22 @@ class DPMPP2MSampler(BaseDiffusionSampler):
             )
 
         return x
+
+class SubstepSampler(EulerAncestralSampler):
+    def __init__(self, n_sample_steps=1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n_sample_steps = n_sample_steps
+        self.steps_subset = [0, 100, 200, 300, 1000]
+
+    def prepare_sampling_loop(self, x, cond, uc=None, num_steps=None):
+        sigmas = self.discretization(
+            self.num_steps if num_steps is None else num_steps, device=self.device
+        )
+        sigmas = sigmas[
+            self.steps_subset[: self.n_sample_steps] + self.steps_subset[-1:]
+        ]
+        uc = cond
+        x *= torch.sqrt(1.0 + sigmas[0] ** 2.0)
+        num_sigmas = len(sigmas)
+        s_in = x.new_ones([x.shape[0]])
+        return x, s_in, sigmas, num_sigmas, cond, uc

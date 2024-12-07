@@ -12,7 +12,8 @@ from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
                                                    EulerAncestralSampler,
                                                    EulerEDMSampler,
                                                    HeunEDMSampler,
-                                                   LinearMultistepSampler)
+                                                   LinearMultistepSampler,
+                                                   SubstepSampler,)
 from sgm.util import load_model_from_config
 
 from sige.utils import downsample_mask
@@ -40,6 +41,7 @@ class Sampler(str, Enum):
     DPMPP2S_ANCESTRAL = "DPMPP2SAncestralSampler"
     DPMPP2M = "DPMPP2MSampler"
     LINEAR_MULTISTEP = "LinearMultistepSampler"
+    TURBO_SAMPLER = "TurboSampler"
 
 
 class Discretization(str, Enum):
@@ -512,6 +514,16 @@ def get_sampler_config(params: SamplingParams):
             discretization_config=discretization_config,
             guider_config=guider_config,
             order=params.order,
+            verbose=True,
+        )
+    if params.sampler == Sampler.TURBO_SAMPLER:
+        return SubstepSampler(
+            n_sample_steps=max(params.steps,4),
+            num_steps=1000,
+            discretization_config=discretization_config,
+            guider_config=guider_config,
+            eta=params.eta,
+            s_noise=params.s_noise,
             verbose=True,
         )
 

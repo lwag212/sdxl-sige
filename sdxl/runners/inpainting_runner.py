@@ -10,7 +10,7 @@ from einops import repeat
 from sige.utils import downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner
-from sgm.inference.api import SamplingParams
+from sgm.inference.api import SamplingParams, Sampler
 
 
 class InpaintingRunner(BaseRunner):
@@ -35,7 +35,7 @@ class InpaintingRunner(BaseRunner):
         params.width = args.W
         params.height = args.H
         if 'turbo' in args.run_type:
-            params.steps = 4
+            params.sampler = Sampler.TURBO_SAMPLER
 
         # Generate the masks
         shape = (args.C, args.H // args.f, args.W // args.f)
