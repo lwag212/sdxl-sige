@@ -22,10 +22,6 @@ import torch
 
 
 class ModelArchitecture(str, Enum):
-    SD_2_1 = "stable-diffusion-v2-1"
-    SD_2_1_768 = "stable-diffusion-v2-1-768"
-    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
-    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_SIGE_V1_BASE = "sige-stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
@@ -35,12 +31,7 @@ class ModelArchitecture(str, Enum):
 
 
 class Sampler(str, Enum):
-    EULER_EDM = "EulerEDMSampler"
-    HEUN_EDM = "HeunEDMSampler"
-    EULER_ANCESTRAL = "EulerAncestralSampler"
-    DPMPP2S_ANCESTRAL = "DPMPP2SAncestralSampler"
     DPMPP2M = "DPMPP2MSampler"
-    LINEAR_MULTISTEP = "LinearMultistepSampler"
     TURBO_SAMPLER = "TurboSampler"
 
 
@@ -99,46 +90,6 @@ class SamplingSpec:
 
 
 model_specs = {
-    ModelArchitecture.SD_2_1: SamplingSpec(
-        height=512,
-        width=512,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_2_1.yaml",
-        ckpt="v2-1_512-ema-pruned.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SD_2_1_768: SamplingSpec(
-        height=768,
-        width=768,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_2_1_768.yaml",
-        ckpt="v2-1_768-ema-pruned.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SDXL_V0_9_BASE: SamplingSpec(
-        height=1024,
-        width=1024,
-        channels=4,
-        factor=8,
-        is_legacy=False,
-        config="sd_xl_base.yaml",
-        ckpt="sd_xl_base_0.9.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SDXL_V0_9_REFINER: SamplingSpec(
-        height=1024,
-        width=1024,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_xl_refiner.yaml",
-        ckpt="sd_xl_refiner_0.9.safetensors",
-        is_guided=True,
-    ),
     ModelArchitecture.SDXL_V1_BASE: SamplingSpec(
         height=1024,
         width=1024,
