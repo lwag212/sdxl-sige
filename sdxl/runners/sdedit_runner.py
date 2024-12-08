@@ -4,8 +4,6 @@ import numpy as np
 import torch
 from einops import repeat
 
-from sgm.models.sige_autoencoder import SIGEAutoencoderKL
-from sige.nn import SIGEModel
 from sige.utils import compute_difference_mask, dilate_mask, downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner

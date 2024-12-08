@@ -4,9 +4,6 @@ import numpy as np
 import torch
 from einops import repeat
 
-# from sgm.models.sige_autoencoder import SIGEAutoencoderKL
-# from sdxl.sgm.modules.diffusionmodules.sige_openaimodel import SIGEUNetModel
-# from sige.nn import SIGEModel
 from sige.utils import downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner
