@@ -83,6 +83,8 @@ class BaseRunner:
         if args.mode != 'generate' and args.refined:
             refined_args = NamespaceCopy(args)
             args.mode = 'generate'
+        else:
+            refined_args = args
 
         self.model = SamplingPipeline(
             model_id=architecture,
