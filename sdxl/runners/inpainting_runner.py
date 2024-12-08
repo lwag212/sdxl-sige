@@ -56,13 +56,15 @@ class InpaintingRunner(BaseRunner):
 
         if args.refined:
             _, samples_z = samples
+            del self.model
+            torch.cuda.empty_cache()
 
             samples = self.refiner.inpaint(
                 params=params,
                 image=samples_z,
                 prompt=args.prompt,
                 mask=mask,
-                conv_masks=mask,
+                conv_masks=conv_masks,
                 negative_prompt=args.negative_prompt,
                 skip_encode=True,
             )

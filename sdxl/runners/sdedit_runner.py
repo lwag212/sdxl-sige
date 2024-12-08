@@ -66,6 +66,8 @@ class SDEditRunner(BaseRunner):
 
         if args.refined:
             _, samples_z = samples
+            del self.model
+            torch.cuda.empty_cache()
 
             samples = self.refiner.sdedit(
                 params = params,

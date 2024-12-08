@@ -27,7 +27,7 @@ model:
         num_res_blocks: 2
         channel_mult: [1, 2, 4, 4]
         num_head_channels: 64
-        use_linear_in_transformer: True
+        use_linear_in_transformer: False
         transformer_depth: 4
         context_dim: 1280
         spatial_transformer_attn_type: softmax

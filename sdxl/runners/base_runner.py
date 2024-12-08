@@ -12,6 +12,15 @@ from PIL import Image
 from utils import check_safety, put_watermark
 from sgm.inference.api import SamplingPipeline, ModelArchitecture
 
+import copy
+
+class NamespaceCopy:
+    def __init__(self, namespace):
+        self.args = copy.deepcopy(namespace.__dict__)
+    
+    def __getattr__(self, x):
+        return self.args[x]
+
 
 class BaseRunner:
     @staticmethod
@@ -70,6 +79,10 @@ class BaseRunner:
             architecture = ModelArchitecture.SDXL_SIGE_TURBO
         else:
             raise NotImplementedError("Unknown architecture [%s]!!!" % run_type)
+        
+        if args.mode != 'generate' and args.refined:
+            refined_args = NamespaceCopy(args)
+            args.mode = 'generate'
 
         self.model = SamplingPipeline(
             model_id=architecture,
@@ -89,7 +102,7 @@ class BaseRunner:
                 config_path=args.config_path,
                 device=device,
                 mask_path=args.mask_path if 'mask_path' in args else None,
-                args=args,
+                args=refined_args,
                 use_fp16=False
             )
         else:
