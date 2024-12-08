@@ -465,59 +465,12 @@ def get_sampler_config(params: SamplingParams):
     discretization_config = get_discretization_config(params)
     guider_config = get_guider_config(params)
     sampler = None
-    if params.sampler == Sampler.EULER_EDM:
-        return EulerEDMSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            s_churn=params.s_churn,
-            s_tmin=params.s_tmin,
-            s_tmax=params.s_tmax,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.HEUN_EDM:
-        return HeunEDMSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            s_churn=params.s_churn,
-            s_tmin=params.s_tmin,
-            s_tmax=params.s_tmax,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.EULER_ANCESTRAL:
-        return EulerAncestralSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            eta=params.eta,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.DPMPP2S_ANCESTRAL:
-        return DPMPP2SAncestralSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            eta=params.eta,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
+
     if params.sampler == Sampler.DPMPP2M:
         return DPMPP2MSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
-            verbose=True,
-        )
-    if params.sampler == Sampler.LINEAR_MULTISTEP:
-        return LinearMultistepSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            order=params.order,
             verbose=True,
         )
     if params.sampler == Sampler.TURBO_SAMPLER:
