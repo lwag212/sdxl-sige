@@ -29,7 +29,7 @@ model:
         num_head_channels: 64
         use_linear_in_transformer: True
         transformer_depth: 4
-        context_dim: [1280, 1280, 1280, 1280]
+        context_dim: 1280
         spatial_transformer_attn_type: softmax
 
     conditioner_config:
