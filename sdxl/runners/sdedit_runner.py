@@ -59,6 +59,22 @@ class SDEditRunner(BaseRunner):
           is_sige_model=is_sige_model,
           difference_mask=difference_mask,
           negative_prompt=args.negative_prompt,
+          return_latents=args.refiner,
         )
 
+        if args.refined:
+            _, samples_z = samples
+
+            shape = (args.C, args.H // args.f, args.W // args.f)
+            mask = 1 - masks[tuple(shape[1:])][None, None].float()
+
+            samples = self.refiner.inpaint(
+                params=params,
+                image=samples_z,
+                prompt=args.prompt,
+                mask=mask,
+                conv_masks=masks,
+                negative_prompt=args.negative_prompt,
+                skip_encode=True,
+            )
         self.save_samples(samples)

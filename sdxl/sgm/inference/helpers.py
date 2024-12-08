@@ -352,7 +352,10 @@ def do_inpaint(
             if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                 assert isinstance(model.first_stage_model.encoder, SIGEModel)
                 model.first_stage_model.encoder.set_mode("full")
-            z = model.encode_first_stage(img)
+            if skip_encode:
+                z = img
+            else:
+                z = model.encode_first_stage(img)
 
             if args is not None: model.model.args = args  # Pass args for profiling
 

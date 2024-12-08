@@ -51,6 +51,20 @@ class InpaintingRunner(BaseRunner):
           mask=mask,
           conv_masks=conv_masks,
           negative_prompt=args.negative_prompt,
+          return_latents=args.refiner,
         )
+
+        if args.refined:
+            _, samples_z = samples
+
+            samples = self.refiner.inpaint(
+                params=params,
+                image=samples_z,
+                prompt=args.prompt,
+                mask=mask,
+                conv_masks=mask,
+                negative_prompt=args.negative_prompt,
+                skip_encode=True,
+            )
 
         self.save_samples(samples)

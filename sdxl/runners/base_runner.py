@@ -36,6 +36,7 @@ class BaseRunner:
         parser.add_argument("--init_img", type=str, default=None)
         parser.add_argument("--C", type=int, default=4)
         parser.add_argument("--f", type=int, default=8)
+        parser.add_argument("--refined", type=bool, default=False)
         return parser
 
     def __init__(self, args):
@@ -79,6 +80,20 @@ class BaseRunner:
             args=args,
             use_fp16=False
         )
+
+        if args.refined:
+            assert run_type in ['original', 'sige'], "Don't support refiner for Turbo"
+            self.refiner = SamplingPipeline(
+                model_id=ModelArchitecture.SDXL_SIGE_V1_REFINER if run_type == 'sige' else ModelArchitecture.SDXL_V1_REFINER,
+                model_path=args.weight_path,
+                config_path=args.config_path,
+                device=device,
+                mask_path=args.mask_path if 'mask_path' in args else None,
+                args=args,
+                use_fp16=False
+            )
+        else:
+            self.refiner = None
 
     def generate(self):
         raise NotImplementedError

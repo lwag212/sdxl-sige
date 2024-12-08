@@ -165,7 +165,7 @@ model_specs = {
         channels=4,
         factor=8,
         is_legacy=True,
-        config="sd_xl_refiner.yaml",
+        config="refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
         is_guided=True,
     ),
@@ -175,7 +175,7 @@ model_specs = {
         channels=4,
         factor=8,
         is_legacy=True,
-        config="sige_sd_xl_refiner.yaml",
+        config="sige-refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
         is_guided=True,
     ),
@@ -278,6 +278,7 @@ class SamplingPipeline:
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
+        skip_encode = False,
     ):
         sampler = get_sampler_config(params)
 
@@ -304,6 +305,7 @@ class SamplingPipeline:
             mask=mask,
             conv_masks=conv_masks,
             args = self.args,
+            skip_encode=skip_encode,
         )
 
     def sdedit(
