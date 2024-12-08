@@ -12,6 +12,15 @@ from PIL import Image
 from utils import check_safety, put_watermark
 from sgm.inference.api import SamplingPipeline, ModelArchitecture
 
+import copy
+
+class NamespaceCopy:
+    def __init__(self, namespace):
+        self.args = copy.deepcopy(namespace.__dict__)
+    
+    def __getattr__(self, x):
+        return self.args[x]
+
 
 class BaseRunner:
     @staticmethod
@@ -29,13 +38,14 @@ class BaseRunner:
         parser.add_argument("--ddim_eta", type=float, default=0.0)
         parser.add_argument("--config_path", type=str, default="configs")
         parser.add_argument("--weight_path", type=str, default="pretrained")
-        parser.add_argument("--run_type", type=str, default="original")
+        parser.add_argument("--run_type", type=str, default="original", choices=['original', 'sige', 'turbo', 'sige-turbo'])
         parser.add_argument("--device", type=str, default=None)
         parser.add_argument("--scale", type=float, default=7.5)
         parser.add_argument("--seed", type=int, default=2)
         parser.add_argument("--init_img", type=str, default=None)
         parser.add_argument("--C", type=int, default=4)
         parser.add_argument("--f", type=int, default=8)
+        parser.add_argument("--refined", type=bool, default=False)
         return parser
 
     def __init__(self, args):
@@ -50,7 +60,6 @@ class BaseRunner:
         else:
             raise NotImplementedError("Unknown device [%s]!!!" % args.device)
         run_type = args.run_type
-        assert run_type in ['original', 'sige']
 
         wm = "SDXL"
         wm_encoder = WatermarkEncoder()
@@ -59,8 +68,26 @@ class BaseRunner:
         self.device = device
         self.wm_encoder = wm_encoder
 
+        # Get architecture
+        if run_type == 'original':
+            architecture = ModelArchitecture.SDXL_V1_BASE
+        elif run_type == 'sige':
+            architecture = ModelArchitecture.SDXL_SIGE_V1_BASE
+        elif run_type == 'turbo':
+            architecture = ModelArchitecture.SDXL_TURBO
+        elif run_type == 'sige-turbo':
+            architecture = ModelArchitecture.SDXL_SIGE_TURBO
+        else:
+            raise NotImplementedError("Unknown architecture [%s]!!!" % run_type)
+        
+        if args.mode != 'generate' and args.refined:
+            refined_args = NamespaceCopy(args)
+            args.mode = 'generate'
+        else:
+            refined_args = args
+
         self.model = SamplingPipeline(
-            model_id=ModelArchitecture.SDXL_V1_BASE if run_type == 'original' else ModelArchitecture.SDXL_SIGE_V1_BASE,
+            model_id=architecture,
             model_path=args.weight_path,
             config_path=args.config_path,
             device=device,
@@ -68,6 +95,20 @@ class BaseRunner:
             args=args,
             use_fp16=False
         )
+
+        if args.refined:
+            assert run_type in ['original', 'sige'], "Don't support refiner for Turbo"
+            self.refiner = SamplingPipeline(
+                model_id=ModelArchitecture.SDXL_SIGE_V1_REFINER if run_type == 'sige' else ModelArchitecture.SDXL_V1_REFINER,
+                model_path=args.weight_path,
+                config_path=args.config_path,
+                device=device,
+                mask_path=args.mask_path if 'mask_path' in args else None,
+                args=refined_args,
+                use_fp16=False
+            )
+        else:
+            self.refiner = None
 
     def generate(self):
         raise NotImplementedError

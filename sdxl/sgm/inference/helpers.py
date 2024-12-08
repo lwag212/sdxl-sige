@@ -352,7 +352,10 @@ def do_inpaint(
             if isinstance(model.first_stage_model, SIGEAutoencoderKL):
                 assert isinstance(model.first_stage_model.encoder, SIGEModel)
                 model.first_stage_model.encoder.set_mode("full")
-            z = model.encode_first_stage(img)
+            if skip_encode:
+                z = img
+            else:
+                z = model.encode_first_stage(img)
 
             if args is not None: model.model.args = args  # Pass args for profiling
 
@@ -427,7 +430,10 @@ def do_sdedit(
 
             if args is not None: model.first_stage_model.args = args
             
-            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+            if skip_encode:
+                init_latent = init_img
+                edited_latent = edited_img
+            elif isinstance(model.first_stage_model, SIGEAutoencoderKL):
                 assert isinstance(model.first_stage_model.encoder, SIGEModel)
                 assert init_img is not None, "Must provide an initial image for SIGE model"
                 model.first_stage_model.encoder.set_mode("full")

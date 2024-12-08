@@ -8,11 +8,7 @@ from omegaconf import OmegaConf
 from sgm.inference.helpers import (Img2ImgDiscretizationWrapper, do_img2img,
                                    do_sample, do_inpaint, do_sdedit)
 from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
-                                                   DPMPP2SAncestralSampler,
-                                                   EulerAncestralSampler,
-                                                   EulerEDMSampler,
-                                                   HeunEDMSampler,
-                                                   LinearMultistepSampler)
+                                                   SubstepSampler,)
 from sgm.util import load_model_from_config
 
 from sige.utils import downsample_mask
@@ -21,22 +17,17 @@ import torch
 
 
 class ModelArchitecture(str, Enum):
-    SD_2_1 = "stable-diffusion-v2-1"
-    SD_2_1_768 = "stable-diffusion-v2-1-768"
-    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
-    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_SIGE_V1_BASE = "sige-stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SDXL_SIGE_V1_REFINER = "sige-stable-diffusion-xl-v1-refiner"
+    SDXL_TURBO = "stable-diffusion-xl-turbo"
+    SDXL_SIGE_TURBO = "sige-stable-diffusion-xl-turbo"
 
 
 class Sampler(str, Enum):
-    EULER_EDM = "EulerEDMSampler"
-    HEUN_EDM = "HeunEDMSampler"
-    EULER_ANCESTRAL = "EulerAncestralSampler"
-    DPMPP2S_ANCESTRAL = "DPMPP2SAncestralSampler"
     DPMPP2M = "DPMPP2MSampler"
-    LINEAR_MULTISTEP = "LinearMultistepSampler"
+    TURBO_SAMPLER = "TurboSampler"
 
 
 class Discretization(str, Enum):
@@ -94,46 +85,6 @@ class SamplingSpec:
 
 
 model_specs = {
-    ModelArchitecture.SD_2_1: SamplingSpec(
-        height=512,
-        width=512,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_2_1.yaml",
-        ckpt="v2-1_512-ema-pruned.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SD_2_1_768: SamplingSpec(
-        height=768,
-        width=768,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_2_1_768.yaml",
-        ckpt="v2-1_768-ema-pruned.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SDXL_V0_9_BASE: SamplingSpec(
-        height=1024,
-        width=1024,
-        channels=4,
-        factor=8,
-        is_legacy=False,
-        config="sd_xl_base.yaml",
-        ckpt="sd_xl_base_0.9.safetensors",
-        is_guided=True,
-    ),
-    ModelArchitecture.SDXL_V0_9_REFINER: SamplingSpec(
-        height=1024,
-        width=1024,
-        channels=4,
-        factor=8,
-        is_legacy=True,
-        config="sd_xl_refiner.yaml",
-        ckpt="sd_xl_refiner_0.9.safetensors",
-        is_guided=True,
-    ),
     ModelArchitecture.SDXL_V1_BASE: SamplingSpec(
         height=1024,
         width=1024,
@@ -160,8 +111,38 @@ model_specs = {
         channels=4,
         factor=8,
         is_legacy=True,
-        config="sd_xl_refiner.yaml",
+        config="refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_SIGE_V1_REFINER: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=True,
+        config="sige-refiner.yaml",
+        ckpt="sd_xl_refiner_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_TURBO: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=False,
+        config="original.yaml",
+        ckpt="sd_xl_turbo_1.0.safetensors",
+        is_guided=True,
+    ),
+    ModelArchitecture.SDXL_SIGE_TURBO: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=False,
+        config="sige.yaml",
+        ckpt="sd_xl_turbo_1.0.safetensors",
         is_guided=True,
     ),
 }
@@ -243,6 +224,7 @@ class SamplingPipeline:
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
+        skip_encode = False,
     ):
         sampler = get_sampler_config(params)
 
@@ -269,6 +251,7 @@ class SamplingPipeline:
             mask=mask,
             conv_masks=conv_masks,
             args = self.args,
+            skip_encode=skip_encode,
         )
 
     def sdedit(
@@ -283,6 +266,7 @@ class SamplingPipeline:
         return_latents: bool = False,
         is_sige_model=False,
         difference_mask=None,
+        skip_encode=False,
     ):
         sampler = get_sampler_config(params)
 
@@ -311,6 +295,7 @@ class SamplingPipeline:
             is_sige_model=is_sige_model,
             difference_mask=difference_mask,
             args = self.args,
+            skip_encode=skip_encode,
         )
 
     def image_to_image(
@@ -426,46 +411,7 @@ def get_sampler_config(params: SamplingParams):
     discretization_config = get_discretization_config(params)
     guider_config = get_guider_config(params)
     sampler = None
-    if params.sampler == Sampler.EULER_EDM:
-        return EulerEDMSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            s_churn=params.s_churn,
-            s_tmin=params.s_tmin,
-            s_tmax=params.s_tmax,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.HEUN_EDM:
-        return HeunEDMSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            s_churn=params.s_churn,
-            s_tmin=params.s_tmin,
-            s_tmax=params.s_tmax,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.EULER_ANCESTRAL:
-        return EulerAncestralSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            eta=params.eta,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
-    if params.sampler == Sampler.DPMPP2S_ANCESTRAL:
-        return DPMPP2SAncestralSampler(
-            num_steps=params.steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            eta=params.eta,
-            s_noise=params.s_noise,
-            verbose=True,
-        )
+
     if params.sampler == Sampler.DPMPP2M:
         return DPMPP2MSampler(
             num_steps=params.steps,
@@ -473,12 +419,12 @@ def get_sampler_config(params: SamplingParams):
             guider_config=guider_config,
             verbose=True,
         )
-    if params.sampler == Sampler.LINEAR_MULTISTEP:
-        return LinearMultistepSampler(
-            num_steps=params.steps,
+    if params.sampler == Sampler.TURBO_SAMPLER:
+        return SubstepSampler(
+            n_sample_steps=params.steps,
+            num_steps=1000,
             discretization_config=discretization_config,
             guider_config=guider_config,
-            order=params.order,
             verbose=True,
         )
 

@@ -4,13 +4,10 @@ import numpy as np
 import torch
 from einops import repeat
 
-# from sgm.models.sige_autoencoder import SIGEAutoencoderKL
-# from sdxl.sgm.modules.diffusionmodules.sige_openaimodel import SIGEUNetModel
-# from sige.nn import SIGEModel
 from sige.utils import downsample_mask
 from utils import load_img
 from .base_runner import BaseRunner
-from sgm.inference.api import SamplingParams
+from sgm.inference.api import SamplingParams, Sampler
 
 
 class InpaintingRunner(BaseRunner):
@@ -31,11 +28,12 @@ class InpaintingRunner(BaseRunner):
         args = self.args
         device = self.device
 
-        # Works better with lower image strength
         params = SamplingParams()
-        # params.img2img_strength = .8
         params.width = args.W
         params.height = args.H
+        if 'turbo' in args.run_type:
+            params.sampler = Sampler.TURBO_SAMPLER
+            params.steps = 4
 
         # Generate the masks
         shape = (args.C, args.H // args.f, args.W // args.f)
@@ -53,6 +51,22 @@ class InpaintingRunner(BaseRunner):
           mask=mask,
           conv_masks=conv_masks,
           negative_prompt=args.negative_prompt,
+          return_latents=args.refined,
         )
+
+        if args.refined:
+            _, samples_z = samples
+            del self.model
+            torch.cuda.empty_cache()
+
+            samples = self.refiner.inpaint(
+                params=params,
+                image=samples_z,
+                prompt=args.prompt,
+                mask=mask,
+                conv_masks=conv_masks,
+                negative_prompt=args.negative_prompt,
+                skip_encode=True,
+            )
 
         self.save_samples(samples)
