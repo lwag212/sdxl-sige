@@ -505,7 +505,7 @@ class DPMPP2MSampler(BaseDiffusionSampler):
 
         return x
 
-class SubstepSampler(EulerAncestralSampler):
+class SubstepSampler(DPMPP2MSampler):
     def __init__(self, n_sample_steps=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_sample_steps = n_sample_steps

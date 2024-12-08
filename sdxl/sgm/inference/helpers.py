@@ -371,7 +371,7 @@ def do_inpaint(
             
             z_T = None # Start with random
             samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, z_T, z, cond=c, uc=uc, 
-                                                apply_mask=apply_mask if mask is not None else None, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
+                                                apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
                                             )
 
             if isinstance(model.first_stage_model, SIGEAutoencoderKL):

@@ -526,8 +526,6 @@ def get_sampler_config(params: SamplingParams):
             num_steps=1000,
             discretization_config=discretization_config,
             guider_config=guider_config,
-            eta=params.eta,
-            s_noise=params.s_noise,
             verbose=True,
         )
 
