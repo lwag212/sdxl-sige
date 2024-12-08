@@ -34,6 +34,7 @@ class SDEditRunner(BaseRunner):
         )
         if 'turbo' in args.run_type:
             params.sampler = Sampler.TURBO_SAMPLER
+            params.steps = 4
 
         # Load images and compute difference if necessary
         edited_img = load_img(args.edited_img).to(device)

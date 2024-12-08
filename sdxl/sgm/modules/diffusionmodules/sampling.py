@@ -509,12 +509,13 @@ class SubstepSampler(EulerAncestralSampler):
     def __init__(self, n_sample_steps=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_sample_steps = n_sample_steps
-        self.steps_subset = [0, 100, 200, 300, 1000]
+        self.steps_subset = [0, 100, 200, 300, -1]
 
     def prepare_sampling_loop(self, x, cond, uc=None, num_steps=None):
         sigmas = self.discretization(
             self.num_steps if num_steps is None else num_steps, device=self.device
         )
+        assert self.steps_subset[:self.n_sample_steps][-1] < len(sigmas), "Jump step out of range for TURBO"
         sigmas = sigmas[
             self.steps_subset[: self.n_sample_steps] + self.steps_subset[-1:]
         ]

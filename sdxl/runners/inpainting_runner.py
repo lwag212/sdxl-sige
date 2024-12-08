@@ -36,6 +36,7 @@ class InpaintingRunner(BaseRunner):
         params.height = args.H
         if 'turbo' in args.run_type:
             params.sampler = Sampler.TURBO_SAMPLER
+            params.steps = 4
 
         # Generate the masks
         shape = (args.C, args.H // args.f, args.W // args.f)

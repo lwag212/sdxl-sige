@@ -518,7 +518,7 @@ def get_sampler_config(params: SamplingParams):
         )
     if params.sampler == Sampler.TURBO_SAMPLER:
         return SubstepSampler(
-            n_sample_steps=max(params.steps,4),
+            n_sample_steps=params.steps,
             num_steps=1000,
             discretization_config=discretization_config,
             guider_config=guider_config,
