@@ -371,7 +371,7 @@ def do_inpaint(
             
             z_T = None # Start with random
             samples_z = sampler.sige_inpaint_call(denoiser, set_mode_masks, z_T, z, cond=c, uc=uc, 
-                                                apply_mask=apply_mask, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
+                                                apply_mask=apply_mask if mask is not None else None, is_sige=isinstance(model.model.diffusion_model, SIGEUNetModel),
                                             )
 
             if isinstance(model.first_stage_model, SIGEAutoencoderKL):
@@ -430,7 +430,10 @@ def do_sdedit(
 
             if args is not None: model.first_stage_model.args = args
             
-            if isinstance(model.first_stage_model, SIGEAutoencoderKL):
+            if skip_encode:
+                init_latent = init_img
+                edited_latent = edited_img
+            elif isinstance(model.first_stage_model, SIGEAutoencoderKL):
                 assert isinstance(model.first_stage_model.encoder, SIGEModel)
                 assert init_img is not None, "Must provide an initial image for SIGE model"
                 model.first_stage_model.encoder.set_mode("full")

@@ -16,6 +16,8 @@ class SDEditRunner(BaseRunner):
         parser = super(SDEditRunner, SDEditRunner).modify_commandline_options(parser)
         parser.add_argument("--strength", type=float, default=0.8)
         parser.add_argument("--edited_img", type=str, required=True)
+        parser.add_argument("--H", type=int, default=512)
+        parser.add_argument("--W", type=int, default=512)
         return parser
 
     def __init__(self, args):
@@ -59,21 +61,20 @@ class SDEditRunner(BaseRunner):
           is_sige_model=is_sige_model,
           difference_mask=difference_mask,
           negative_prompt=args.negative_prompt,
-          return_latents=args.refiner,
+          return_latents=args.refined,
         )
 
         if args.refined:
             _, samples_z = samples
 
-            shape = (args.C, args.H // args.f, args.W // args.f)
-            mask = 1 - masks[tuple(shape[1:])][None, None].float()
-
-            samples = self.refiner.inpaint(
-                params=params,
-                image=samples_z,
-                prompt=args.prompt,
-                mask=mask,
-                conv_masks=masks,
+            samples = self.refiner.sdedit(
+                params = params,
+                edited_image=samples_z,
+                prompt = args.prompt,
+                init_image=samples_z,
+                masks=masks,
+                is_sige_model=is_sige_model,
+                difference_mask=difference_mask,
                 negative_prompt=args.negative_prompt,
                 skip_encode=True,
             )

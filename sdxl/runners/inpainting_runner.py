@@ -51,7 +51,7 @@ class InpaintingRunner(BaseRunner):
           mask=mask,
           conv_masks=conv_masks,
           negative_prompt=args.negative_prompt,
-          return_latents=args.refiner,
+          return_latents=args.refined,
         )
 
         if args.refined:

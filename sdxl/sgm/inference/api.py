@@ -320,6 +320,7 @@ class SamplingPipeline:
         return_latents: bool = False,
         is_sige_model=False,
         difference_mask=None,
+        skip_encode=False,
     ):
         sampler = get_sampler_config(params)
 
@@ -348,6 +349,7 @@ class SamplingPipeline:
             is_sige_model=is_sige_model,
             difference_mask=difference_mask,
             args = self.args,
+            skip_encode=skip_encode,
         )
 
     def image_to_image(
