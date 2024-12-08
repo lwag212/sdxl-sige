@@ -68,7 +68,7 @@ class BaseDiffusionSampler:
             sigma_generator = tqdm(
                 sigma_generator,
                 total=num_sigmas - 1,
-                desc=f"Sampling with {self.__class__.__name__} for {num_sigmas} steps",
+                desc=f"Sampling with {self.__class__.__name__} for {num_sigmas - 1} steps",
             )
         return sigma_generator
 
