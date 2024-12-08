@@ -67,7 +67,7 @@ class BaseDiffusionSampler:
             print(f"Guider: {self.guider.__class__.__name__}")
             sigma_generator = tqdm(
                 sigma_generator,
-                total=num_sigmas,
+                total=num_sigmas - 1,
                 desc=f"Sampling with {self.__class__.__name__} for {num_sigmas} steps",
             )
         return sigma_generator
