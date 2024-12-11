@@ -1,3 +1,29 @@
+# Visual Results for SDXL
+
+Here we are demonstrating the visual results from SDXL-SIGE. We demonstrate the performance gains and provide the code to generate these results in the section below. 
+
+## Inpainting
+
+![plot](./assets/results/inpainting.png)
+
+## SDEdit
+
+### Example 0
+
+![plot](./assets/results/sdedit0.png)
+
+### Example 1
+
+![plot](./assets/results/sdedit1.png)
+
+## SDXL Refiner
+
+![plot](./assets/results/refiner.png)
+
+## SDXL-Turbo
+
+![plot](./assets/results/turbo.png)
+
 # Benchmark on SDXL
 
 ## Setup
