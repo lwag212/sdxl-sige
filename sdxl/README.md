@@ -1,6 +1,10 @@
+# SDXL-SIGE
+
+We demonstrate the visual and performance results from SDXL-SIGE below. For a more in depth discussion, we refer you to our [paper](./SDXL_SIGE.pdf) located in this directory.
+
 # Visual Results for SDXL
 
-Here we are demonstrating the visual results from SDXL-SIGE. We demonstrate the performance gains and provide the code to generate these results in the section below. 
+Here we are demonstrating the visual results from SDXL-SIGE. We demonstrate the performance gains and provide the code to generate these results in the section below.
 
 ## Inpainting
 
